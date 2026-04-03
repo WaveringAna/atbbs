@@ -10,7 +10,7 @@ ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwin
 RUN chmod +x /usr/local/bin/tailwindcss
 
 # Copy dependency files first (layer caching)
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 
 # Install dependencies
 RUN uv sync --frozen --no-dev
