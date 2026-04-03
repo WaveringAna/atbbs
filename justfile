@@ -24,3 +24,16 @@ down:
 
 logs:
     docker compose logs -f
+
+# Set version in pyproject.toml
+version ver:
+    sed -i 's/^version = ".*"/version = "{{ver}}"/' pyproject.toml
+    uv lock
+
+# Tag and push a release
+release ver: (version ver) css
+    git add -A
+    git commit -m "v{{ver}}"
+    git tag "v{{ver}}"
+    git push
+    git push --tags
