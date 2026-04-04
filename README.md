@@ -37,7 +37,7 @@ Or from source:
 git clone https://github.com/alyraffauf/atbbs.git
 cd atbbs
 uv sync
-uv run atbbsbs
+uv run atbbs
 ```
 
 ### Web app (Docker)
