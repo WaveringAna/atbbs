@@ -83,16 +83,30 @@ async def create_thread(handle: str, slug: str):
 
     board_uri = f"at://{bbs.identity.did}/xyz.atboards.board/{slug}"
 
+    # Handle file attachments
+    from core.records import upload_blob
+    attachments = []
+    files = (await request.files).getlist("attachments")
+    for f in files:
+        if f.filename:
+            data = f.read()
+            blob_ref = await upload_blob(client, user, data, f.content_type or "application/octet-stream", session_updater)
+            attachments.append({"file": blob_ref, "name": f.filename})
+
+    record = {
+        "$type": "xyz.atboards.thread",
+        "board": board_uri,
+        "title": title,
+        "body": body,
+        "createdAt": now_iso(),
+    }
+    if attachments:
+        record["attachments"] = attachments
+
     resp = await _authed_pds_post(user, "com.atproto.repo.createRecord", {
         "repo": user["did"],
         "collection": "xyz.atboards.thread",
-        "record": {
-            "$type": "xyz.atboards.thread",
-            "board": board_uri,
-            "title": title,
-            "body": body,
-            "createdAt": now_iso(),
-        },
+        "record": record,
     })
     resp.raise_for_status()
 
@@ -112,15 +126,30 @@ async def create_reply(handle: str, did: str, tid: str):
 
     thread_uri = f"at://{did}/xyz.atboards.thread/{tid}"
 
+    # Handle file attachments
+    from core.records import upload_blob
+    client = current_app.http_client
+    attachments = []
+    files = (await request.files).getlist("attachments")
+    for f in files:
+        if f.filename:
+            data = f.read()
+            blob_ref = await upload_blob(client, user, data, f.content_type or "application/octet-stream", session_updater)
+            attachments.append({"file": blob_ref, "name": f.filename})
+
+    record = {
+        "$type": "xyz.atboards.reply",
+        "subject": thread_uri,
+        "body": body,
+        "createdAt": now_iso(),
+    }
+    if attachments:
+        record["attachments"] = attachments
+
     resp = await _authed_pds_post(user, "com.atproto.repo.createRecord", {
         "repo": user["did"],
         "collection": "xyz.atboards.reply",
-        "record": {
-            "$type": "xyz.atboards.reply",
-            "subject": thread_uri,
-            "body": body,
-            "createdAt": now_iso(),
-        },
+        "record": record,
     })
     resp.raise_for_status()
 

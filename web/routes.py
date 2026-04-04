@@ -192,6 +192,7 @@ async def thread(handle: str, did: str, tid: str):
         created_at=thread_record.value["createdAt"],
         author=thread_author,
         updated_at=thread_record.value.get("updatedAt"),
+        attachments=thread_record.value.get("attachments"),
     )
 
     board_slug = thread_obj.board_uri.split("/")[-1]
@@ -252,8 +253,10 @@ async def api_replies(did: str, tid: str):
                 "did": r.author.did,
                 "rkey": r.uri.split("/")[-1],
                 "handle": r.author.handle,
+                "pds_url": r.author.pds or "",
                 "body": r.body,
                 "created_at": r.created_at,
+                "attachments": r.attachments or [],
             }
             for r in replies
         ],
