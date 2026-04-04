@@ -177,6 +177,7 @@ async def callback():
         dpop_authserver_nonce=dpop_nonce,
         dpop_pds_nonce="",
         dpop_private_jwk=auth_req["dpop_private_jwk"],
+        client_id=client_id,
     )
 
     # Clean up auth request, set cookie

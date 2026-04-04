@@ -87,6 +87,7 @@ async def create_reply(handle: str, did: str, tid: str):
 
     form = await request.form
     body = form.get("body", "").strip()
+    quote = form.get("quote", "").strip() or None
     if not body:
         return redirect(f"/bbs/{handle}/thread/{did}/{tid}")
 
@@ -110,6 +111,8 @@ async def create_reply(handle: str, did: str, tid: str):
     }
     if attachments:
         record["attachments"] = attachments
+    if quote:
+        record["quote"] = quote
 
     resp = await _authed_pds_post(user, "com.atproto.repo.createRecord", {
         "repo": user["did"],

@@ -68,6 +68,7 @@ async def hydrate_replies(
             author=authors[r.uri.split("/")[2]],
             updated_at=r.value.get("updatedAt"),
             attachments=r.value.get("attachments"),
+            quote=r.value.get("quote"),
         )
         for r in records
         if r.uri.split("/")[2] in authors
@@ -84,19 +85,18 @@ async def _try_refresh_token(client, session, session_updater):
         from core.auth.oauth import refresh_tokens
         from core.auth.config import load_secrets
         import json, os
-        from platformdirs import user_data_dir
 
-        data_dir = os.environ.get("ATBOARDS_DATA_DIR", user_data_dir("atboards"))
+        data_dir = os.environ.get("ATBOARDS_DATA_DIR")
+        if not data_dir:
+            from platformdirs import user_data_dir
+            data_dir = user_data_dir("atboards")
         secrets = load_secrets(data_dir)
         client_secret_jwk = json.loads(secrets["client_secret_jwk"])
 
-        # Loopback client ID for TUI
-        from urllib.parse import urlencode
-        redirect_uri = "http://127.0.0.1:23847/oauth/callback"
-        scope = "atproto transition:generic"
-        client_id = "http://localhost?" + urlencode(
-            {"redirect_uri": redirect_uri, "scope": scope}
-        )
+        # Use stored client_id — required for token refresh
+        client_id = session.get("client_id")
+        if not client_id:
+            return False
 
         token_resp, dpop_nonce = await refresh_tokens(
             client=client,
@@ -221,6 +221,7 @@ async def create_reply_record(
     thread_uri: str,
     body: str,
     attachments: list[dict] | None = None,
+    quote: str | None = None,
     session_updater=None,
 ) -> httpx.Response:
     """Create a reply record in the user's repo."""
@@ -232,6 +233,8 @@ async def create_reply_record(
     }
     if attachments:
         record["attachments"] = attachments
+    if quote:
+        record["quote"] = quote
     return await _pds_post(client, session, "com.atproto.repo.createRecord", {
         "repo": session["did"],
         "collection": "xyz.atboards.reply",

@@ -24,6 +24,7 @@ class ThreadScreen(Screen):
         self.handle = handle
         self.thread = thread
         self.next_cursor: str | None = None
+        self._replies_map: dict[str, object] = {}
 
     def compose(self) -> ComposeResult:
         board_slug = self.thread.board_uri.split("/")[-1]
@@ -69,7 +70,17 @@ class ThreadScreen(Screen):
 
         scroll = self.query_one("#thread-scroll")
 
+        # Store for quote lookup
         for r in replies:
+            self._replies_map[r.uri] = r
+
+        for r in replies:
+            quote_text = None
+            if r.quote and r.quote in self._replies_map:
+                q = self._replies_map[r.quote]
+                body_preview = q.body[:200] + ("..." if len(q.body) > 200 else "")
+                quote_text = f"{q.author.handle}: {body_preview}"
+
             await scroll.mount(
                 Post(
                     author=r.author.handle,
@@ -80,6 +91,7 @@ class ThreadScreen(Screen):
                     record_uri=r.uri,
                     collection="xyz.atboards.reply",
                     attachments=r.attachments,
+                    quote_text=quote_text,
                 )
             )
 
@@ -111,7 +123,17 @@ class ThreadScreen(Screen):
             return
 
         scroll = self.query_one("#thread-scroll")
+        self._replies_map.clear()
         for r in replies:
+            self._replies_map[r.uri] = r
+
+        for r in replies:
+            quote_text = None
+            if r.quote and r.quote in self._replies_map:
+                q = self._replies_map[r.quote]
+                body_preview = q.body[:200] + ("..." if len(q.body) > 200 else "")
+                quote_text = f"{q.author.handle}: {body_preview}"
+
             await scroll.mount(
                 Post(
                     author=r.author.handle,
@@ -122,6 +144,7 @@ class ThreadScreen(Screen):
                     record_uri=r.uri,
                     collection="xyz.atboards.reply",
                     attachments=r.attachments,
+                    quote_text=quote_text,
                 )
             )
 
@@ -140,8 +163,15 @@ class ThreadScreen(Screen):
         if session["did"] in self.bbs.site.banned_dids:
             self.notify("You have been banned from this BBS.", severity="error")
             return
+
+        # If focused on a reply, quote it
+        quote = None
+        focused = self.focused
+        if isinstance(focused, Post) and focused.collection == "xyz.atboards.reply" and focused.record_uri:
+            quote = self._replies_map.get(focused.record_uri)
+
         from tui.screens.compose import ComposeReplyScreen
-        self.app.push_screen(ComposeReplyScreen(self.bbs, self.handle, self.thread))
+        self.app.push_screen(ComposeReplyScreen(self.bbs, self.handle, self.thread, quote=quote))
 
     def action_delete(self) -> None:
         session = self.app.user_session
@@ -182,7 +212,6 @@ class ThreadScreen(Screen):
 
     @work(exclusive=True)
     async def _do_save(self, post: Post) -> None:
-        import os
         from pathlib import Path
 
         downloads = Path.home() / "Downloads"

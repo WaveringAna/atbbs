@@ -50,9 +50,15 @@
 
 {% if g.user %}
 <form method="post" action="/bbs/{{ handle }}/thread/{{ thread.author.did }}/{{ thread.uri.split('/')[-1] }}/reply" enctype="multipart/form-data" class="mt-6 border border-neutral-800 rounded p-4">
+    <input type="hidden" name="quote" id="quote-uri" value="">
+    <div id="quote-preview" class="text-xs text-neutral-500 mb-2 hidden">
+        <span id="quote-preview-text"></span>
+        <button type="button" onclick="document.getElementById('quote-uri').value=''; document.getElementById('quote-preview').classList.add('hidden');" class="text-neutral-500 hover:text-red-400 ml-2">x</button>
+    </div>
     <textarea
         name="body"
         placeholder="Write a reply..."
+        id="reply-body"
         required
         rows="3"
         class="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-neutral-600 resize-y mb-3"
@@ -75,6 +81,7 @@
     const userDid = "{{ g.user.did if g.user else '' }}";
     const sysopDid = "{{ bbs.identity.did }}";
     let nextCursor = null;
+    const allReplies = {};
 
     function formatDate(iso) {
         const d = new Date(iso);
@@ -101,16 +108,23 @@
         if (userDid && userDid === sysopDid) {
             hideBtn = `<form method="post" action="/bbs/${handle}/hide" class="inline" onsubmit="return confirm('Hide this post?')"><input type="hidden" name="uri" value="${r.uri}"><button type="submit" class="text-xs text-neutral-500 hover:text-red-400">hide</button></form>`;
         }
+        let quoteBlock = '';
+        if (r.quote && allReplies[r.quote]) {
+            const q = allReplies[r.quote];
+            quoteBlock = `<div class="border-l-2 border-neutral-700 pl-3 mb-3 py-1 text-xs text-neutral-500"><span class="text-neutral-400">${escapeHtml(q.handle)}:</span> ${escapeHtml(q.body.substring(0, 200))}${q.body.length > 200 ? '...' : ''}</div>`;
+        }
         return `<div class="border border-neutral-800/50 rounded p-4">
             <div class="flex items-baseline justify-between mb-2">
                 <span class="text-neutral-300">${escapeHtml(r.handle)}</span>
                 <div class="flex items-center gap-3">
                     <span class="text-xs text-neutral-500">${formatDate(r.created_at)}</span>
+                    ${userDid ? `<button type="button" onclick="document.getElementById('quote-uri').value='${r.uri}'; document.getElementById('quote-preview-text').textContent='quoting ${escapeHtml(r.handle)}'; document.getElementById('quote-preview').classList.remove('hidden'); document.getElementById('reply-body').focus();" class="text-xs text-neutral-500 hover:text-neutral-300">quote</button>` : ''}
                     ${deleteBtn}
                     ${banBtn}
                     ${hideBtn}
                 </div>
             </div>
+            ${quoteBlock}
             <p class="text-neutral-400 whitespace-pre-wrap leading-relaxed">${escapeHtml(r.body)}</p>
             ${(r.attachments || []).map(a => `<a href="${r.pds_url}/xrpc/com.atproto.sync.getBlob?did=${r.did}&cid=${a.file.ref['$link']}" target="_blank" class="text-xs text-neutral-500 hover:text-neutral-300 block mt-1">[${escapeHtml(a.name)}]</a>`).join('')}
         </div>`;
@@ -125,6 +139,9 @@
             .then(data => {
                 const container = document.getElementById('replies');
                 const loading = document.getElementById('replies-loading');
+
+                // Store all replies for quote lookup
+                data.replies.forEach(r => { allReplies[r.uri] = r; });
                 if (loading) loading.remove();
 
                 data.replies.forEach(r => {

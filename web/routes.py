@@ -257,6 +257,7 @@ async def api_replies(did: str, tid: str):
                 "body": r.body,
                 "created_at": r.created_at,
                 "attachments": r.attachments or [],
+                "quote": r.quote,
             }
             for r in replies
         ],

@@ -65,6 +65,12 @@ class Post(Widget, can_focus=True):
         color: #8a8a8a;
         margin-top: 1;
     }
+    Post .post-quote {
+        color: #8a8a8a;
+        border-left: solid #525252;
+        padding-left: 2;
+        margin-bottom: 1;
+    }
     """
 
     def __init__(
@@ -78,6 +84,7 @@ class Post(Widget, can_focus=True):
         record_uri: str | None = None,
         collection: str | None = None,
         attachments: list[dict] | None = None,
+        quote_text: str | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -90,6 +97,7 @@ class Post(Widget, can_focus=True):
         self.record_uri = record_uri
         self.collection = collection
         self.attachments = attachments or []
+        self._quote_text = quote_text
 
     @property
     def rkey(self) -> str | None:
@@ -101,6 +109,8 @@ class Post(Widget, can_focus=True):
         yield Static(f"{self._author}  {self._date}", classes="post-meta", markup=False)
         if self._title:
             yield Static(self._title, classes="post-title", markup=False)
+        if self._quote_text:
+            yield Static(self._quote_text, classes="post-quote", markup=False)
         yield Static(self._body, classes="post-body", markup=False)
         for att in self.attachments:
             name = att.get("name", "file")

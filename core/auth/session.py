@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS oauth_session (
     refresh_token TEXT,
     dpop_authserver_nonce TEXT NOT NULL,
     dpop_pds_nonce TEXT,
-    dpop_private_jwk TEXT NOT NULL
+    dpop_private_jwk TEXT NOT NULL,
+    client_id TEXT
 );
 """
 
@@ -82,10 +83,10 @@ class SessionStore:
         con.execute(
             """INSERT OR REPLACE INTO oauth_session
                (did, handle, pds_url, authserver_iss, access_token, refresh_token,
-                dpop_authserver_nonce, dpop_pds_nonce, dpop_private_jwk)
+                dpop_authserver_nonce, dpop_pds_nonce, dpop_private_jwk, client_id)
                VALUES (:did, :handle, :pds_url, :authserver_iss, :access_token,
                        :refresh_token, :dpop_authserver_nonce, :dpop_pds_nonce,
-                       :dpop_private_jwk)""",
+                       :dpop_private_jwk, :client_id)""",
             kwargs,
         )
         con.commit()
@@ -99,7 +100,7 @@ class SessionStore:
         con.close()
         return dict(row) if row else None
 
-    ALLOWED_FIELDS = {"dpop_pds_nonce", "dpop_authserver_nonce", "access_token", "refresh_token"}
+    ALLOWED_FIELDS = {"dpop_pds_nonce", "dpop_authserver_nonce", "access_token", "refresh_token", "client_id"}
 
     def update_session_field(self, did: str, field: str, value: str):
         if field not in self.ALLOWED_FIELDS:

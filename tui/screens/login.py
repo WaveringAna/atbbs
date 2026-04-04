@@ -153,6 +153,7 @@ class LoginScreen(Screen):
             "dpop_authserver_nonce": final_dpop_nonce,
             "dpop_pds_nonce": "",
             "dpop_private_jwk": dpop_private_jwk_json,
+            "client_id": client_id,
         }
         self.app.session_store.save_session(**session_data)
         self.app.user_session = session_data

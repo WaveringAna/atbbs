@@ -122,6 +122,7 @@ class Reply:
     author: MiniDoc
     updated_at: str | None = None
     attachments: list[dict] | None = None
+    quote: str | None = None
 
 
 @dataclass

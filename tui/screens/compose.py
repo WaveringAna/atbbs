@@ -103,10 +103,11 @@ class ComposeThreadScreen(Screen):
 class ComposeReplyScreen(Screen):
     BINDINGS = [("escape", "app.pop_screen", "back")]
 
-    def __init__(self, bbs, handle: str, thread) -> None:
+    def __init__(self, bbs, handle: str, thread, quote=None) -> None:
         super().__init__()
         self.bbs = bbs
         self.handle = handle
+        self.quote = quote  # Reply object or None
         self.thread = thread
 
     def compose(self) -> ComposeResult:
@@ -119,6 +120,9 @@ class ComposeReplyScreen(Screen):
         )
         with Vertical():
             yield Static(f"reply to: {self.thread.title}", classes="title")
+            if self.quote:
+                body_preview = self.quote.body[:60] + ("..." if len(self.quote.body) > 60 else "")
+                yield Static(f"quoting {self.quote.author.handle}: {body_preview} [clear: ctrl+g]", classes="subtitle", id="quote-info")
             yield TextArea(id="reply-body", language=None)
             yield Input(placeholder="attach file (path, optional)", id="reply-file")
             yield Static("ctrl+s to post", classes="subtitle")
@@ -126,6 +130,15 @@ class ComposeReplyScreen(Screen):
 
     def on_mount(self) -> None:
         self.query_one("#reply-body", TextArea).focus()
+
+    def key_ctrl_g(self) -> None:
+        if self.quote:
+            self.quote = None
+            try:
+                self.query_one("#quote-info").remove()
+            except Exception:
+                pass
+            self.notify("Quote cleared.")
 
     def key_ctrl_s(self) -> None:
         self.post_reply()
@@ -157,6 +170,7 @@ class ComposeReplyScreen(Screen):
             resp = await create_reply_record(
                 self.app.http_client, session, self.thread.uri, body,
                 attachments=attachments or None,
+                quote=self.quote.uri if self.quote else None,
             )
             resp.raise_for_status()
         except Exception as e:
