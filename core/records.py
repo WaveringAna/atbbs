@@ -257,3 +257,110 @@ async def delete_record(
     }, session_updater)
     resp.raise_for_status()
     return resp
+
+
+async def fetch_inbox(
+    client: httpx.AsyncClient,
+    did: str,
+    pds_url: str,
+) -> list[dict]:
+    """Fetch inbox: replies to user's threads + quotes of user's replies."""
+    from core.constellation import get_backlinks
+
+    all_items = []
+
+    # 1. Replies to user's threads
+    try:
+        resp = await client.get(
+            f"{pds_url}/xrpc/com.atproto.repo.listRecords",
+            params={"repo": did, "collection": "xyz.atboards.thread", "limit": 100},
+        )
+        resp.raise_for_status()
+        thread_records = resp.json().get("records", [])
+    except Exception:
+        thread_records = []
+
+    for tr in thread_records:
+        thread_uri = tr["uri"]
+        thread_title = tr["value"].get("title", "")
+        board_uri = tr["value"].get("board", "")
+        bbs_did = board_uri.split("/")[2] if len(board_uri.split("/")) > 2 else did
+        try:
+            bbs_authors = await resolve_identities_batch(client, [bbs_did])
+            bbs_handle = bbs_authors[bbs_did].handle if bbs_did in bbs_authors else ""
+        except Exception:
+            bbs_handle = ""
+
+        try:
+            backlinks = await get_replies(client, thread_uri, limit=50)
+            records = await get_records_batch(client, backlinks.records)
+            records = [r for r in records if r.uri.split("/")[2] != did]
+            if not records:
+                continue
+
+            dids = [r.uri.split("/")[2] for r in records]
+            authors = await resolve_identities_batch(client, dids)
+
+            for r in records:
+                author_did = r.uri.split("/")[2]
+                if author_did not in authors:
+                    continue
+                all_items.append({
+                    "type": "reply",
+                    "thread_title": thread_title,
+                    "thread_uri": thread_uri,
+                    "handle": authors[author_did].handle,
+                    "body": r.value.get("body", "")[:200],
+                    "created_at": r.value.get("createdAt", ""),
+                    "bbs_handle": bbs_handle,
+                })
+        except Exception:
+            continue
+
+    # 2. Quotes of user's replies
+    try:
+        resp = await client.get(
+            f"{pds_url}/xrpc/com.atproto.repo.listRecords",
+            params={"repo": did, "collection": "xyz.atboards.reply", "limit": 100},
+        )
+        resp.raise_for_status()
+        reply_records = resp.json().get("records", [])
+    except Exception:
+        reply_records = []
+
+    for rr in reply_records:
+        reply_uri = rr["uri"]
+        thread_uri = rr["value"].get("subject", "")
+        try:
+            backlinks = await get_backlinks(
+                client, subject=reply_uri, source="xyz.atboards.reply:quote", limit=50,
+            )
+            if not backlinks.records:
+                continue
+
+            records = await get_records_batch(client, backlinks.records)
+            records = [r for r in records if r.uri.split("/")[2] != did]
+            if not records:
+                continue
+
+            dids = [r.uri.split("/")[2] for r in records]
+            authors = await resolve_identities_batch(client, dids)
+
+            for r in records:
+                author_did = r.uri.split("/")[2]
+                if author_did not in authors:
+                    continue
+                all_items.append({
+                    "type": "quote",
+                    "thread_title": "",
+                    "thread_uri": thread_uri,
+                    "handle": authors[author_did].handle,
+                    "body": r.value.get("body", "")[:200],
+                    "created_at": r.value.get("createdAt", ""),
+                    "bbs_handle": "",
+                })
+        except Exception:
+            continue
+
+    all_items.sort(key=lambda a: a["created_at"], reverse=True)
+    return all_items

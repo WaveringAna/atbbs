@@ -35,6 +35,25 @@ async def login_page():
     return await render_template("login.html")
 
 
+@bp.route("/api/inbox")
+async def api_inbox():
+    from quart import g
+    if not g.user:
+        return {"inbox": [], "cursor": None}
+
+    from core.records import fetch_inbox
+    client = current_app.http_client
+    cursor = request.args.get("cursor")
+    offset = int(cursor) if cursor else 0
+    limit = 20
+
+    all_items = await fetch_inbox(client, g.user["did"], g.user["pds_url"])
+    page = all_items[offset:offset + limit]
+    next_cursor = str(offset + limit) if offset + limit < len(all_items) else None
+
+    return {"inbox": page, "cursor": next_cursor}
+
+
 @bp.route("/api/resolve/<handle>")
 async def api_resolve(handle: str):
     client = current_app.http_client

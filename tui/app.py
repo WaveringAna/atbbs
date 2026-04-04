@@ -61,6 +61,7 @@ class AtboardsApp(App):
         ("ctrl+q", "quit", "quit"),
         ("ctrl+l", "login", "log in"),
         ("ctrl+r", "refresh", "refresh"),
+        ("ctrl+t", "inbox", "inbox"),
     ]
     SCREENS = {"home": HomeScreen}
 
@@ -105,6 +106,13 @@ class AtboardsApp(App):
         self.user_session = None
         self.sub_title = ""
         self.notify(f"Logged out of {handle}.")
+
+    def action_inbox(self) -> None:
+        if not self.user_session:
+            self.notify("Log in to see your inbox.", severity="warning")
+            return
+        from tui.screens.activity import ActivityScreen
+        self.push_screen(ActivityScreen())
 
     def watch_screen(self) -> None:
         """Update title when returning from login."""

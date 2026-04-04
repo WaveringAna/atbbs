@@ -98,7 +98,8 @@ SiteScreen VerticalScroll {
 
 BoardScreen VerticalScroll,
 ThreadScreen VerticalScroll,
-NewsScreen VerticalScroll {
+NewsScreen VerticalScroll,
+ActivityScreen VerticalScroll {
     padding: 1 4;
 }
 
