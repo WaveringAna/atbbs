@@ -9,10 +9,13 @@
 {% if has_bbs %}
 <div class="space-y-2">
     <a href="/bbs/{{ user.handle }}" class="block px-3 py-2 -mx-3 rounded hover:bg-neutral-900 text-neutral-300 hover:text-white">
-        browse your bbs
+        browse bbs
     </a>
     <a href="/account/edit" class="block px-3 py-2 -mx-3 rounded hover:bg-neutral-900 text-neutral-300 hover:text-white">
         edit bbs
+    </a>
+    <a href="/account/moderate" class="block px-3 py-2 -mx-3 rounded hover:bg-neutral-900 text-neutral-300 hover:text-white">
+        moderate bbs
     </a>
 </div>
 {% else %}

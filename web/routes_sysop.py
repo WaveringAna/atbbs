@@ -88,8 +88,8 @@ async def create_bbs():
     return redirect(f"/bbs/{user['handle']}")
 
 
-@bp.route("/account/edit", methods=["GET", "POST"])
-async def edit_bbs():
+@bp.route("/account/moderate", methods=["GET", "POST"])
+async def moderate_bbs():
     user = await get_user()
     if not user:
         return redirect("/login")
@@ -103,17 +103,14 @@ async def edit_bbs():
         except Exception:
             return redirect("/account/create")
 
-        # Resolve banned DIDs to handles
         from core.slingshot import resolve_identities_batch, get_record_by_uri
         banned_handles = {}
         if bbs.site.banned_dids:
             authors = await resolve_identities_batch(client, list(bbs.site.banned_dids))
             banned_handles = {did: authors[did].handle for did in authors}
 
-        # Hydrate hidden posts
         hidden_posts = []
         if bbs.site.hidden_posts:
-            # Resolve all DIDs from hidden post URIs in one batch
             hidden_dids = list({uri.split("/")[2] for uri in bbs.site.hidden_posts if len(uri.split("/")) > 2})
             hidden_authors = await resolve_identities_batch(client, hidden_dids)
 
@@ -138,7 +135,49 @@ async def edit_bbs():
                         "body": parts[-1] if parts else uri,
                     })
 
-        return await render_template("sysop_edit.html", bbs=bbs, banned_handles=banned_handles, hidden_posts=hidden_posts)
+        return await render_template("sysop_moderate.html", bbs=bbs, banned_handles=banned_handles, hidden_posts=hidden_posts)
+
+    # POST — save moderation changes
+    form = await request.form
+    banned_dids = [d.strip() for d in form.getlist("banned_did") if d.strip()]
+    hidden_uris = [u.strip() for u in form.getlist("hidden_uri") if u.strip()]
+
+    from core.slingshot import get_record
+    try:
+        existing = await get_record(client, user["did"], "xyz.atboards.site", "self")
+        site_value = existing.value
+    except Exception:
+        return redirect("/account/moderate")
+
+    site_value["bannedDids"] = banned_dids
+    site_value["hiddenPosts"] = hidden_uris
+    site_value["updatedAt"] = now_iso()
+
+    await _authed_pds_post(user, "com.atproto.repo.putRecord", {
+        "repo": user["did"],
+        "collection": "xyz.atboards.site",
+        "rkey": "self",
+        "record": site_value,
+    })
+
+    return redirect("/account/moderate")
+
+
+@bp.route("/account/edit", methods=["GET", "POST"])
+async def edit_bbs():
+    user = await get_user()
+    if not user:
+        return redirect("/login")
+
+    client = current_app.http_client
+
+    if request.method == "GET":
+        try:
+            from core.resolver import resolve_bbs
+            bbs = await resolve_bbs(client, user["handle"])
+        except Exception:
+            return redirect("/account/create")
+        return await render_template("sysop_edit.html", bbs=bbs)
 
     form = await request.form
     name = form.get("name", "").strip()
@@ -147,8 +186,6 @@ async def edit_bbs():
     board_slugs = [s.strip() for s in form.getlist("board_slug") if s.strip()]
     board_names = [s.strip() for s in form.getlist("board_name") if s.strip()]
     board_descs = form.getlist("board_desc")
-    banned_dids = [d.strip() for d in form.getlist("banned_did") if d.strip()]
-    hidden_uris = [u.strip() for u in form.getlist("hidden_uri") if u.strip()]
 
     if not name:
         return redirect("/account/edit")
@@ -160,8 +197,12 @@ async def edit_bbs():
     try:
         existing = await get_record(client, user["did"], "xyz.atboards.site", "self")
         created_at = existing.value.get("createdAt", now)
+        existing_banned = existing.value.get("bannedDids", [])
+        existing_hidden = existing.value.get("hiddenPosts", [])
     except Exception:
         created_at = now
+        existing_banned = []
+        existing_hidden = []
 
     # Upsert board records
     for i, slug in enumerate(board_slugs):
@@ -190,8 +231,8 @@ async def edit_bbs():
             "description": description,
             "intro": intro,
             "boards": board_slugs,
-            "bannedDids": banned_dids,
-            "hiddenPosts": hidden_uris,
+            "bannedDids": existing_banned,
+            "hiddenPosts": existing_hidden,
             "createdAt": created_at,
             "updatedAt": now,
         },
