@@ -59,7 +59,7 @@ class AtbbsApp(App):
     CSS_PATH = "app.tcss"
     BINDINGS = [
         ("ctrl+q", "quit", "quit"),
-        ("ctrl+l", "login", "log in"),
+        ("ctrl+l", "login", "account"),
         ("ctrl+r", "refresh", "refresh"),
         ("ctrl+t", "inbox", "inbox"),
     ]
