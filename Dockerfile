@@ -1,41 +1,38 @@
-FROM python:3.14-slim AS build
+FROM node:22-slim AS frontend
 
 WORKDIR /app
-
-# Install build tools
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-RUN chmod +x /usr/local/bin/tailwindcss
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
-
-# Install JS dependencies
 COPY package.json ./
 RUN npm install
+COPY web/static/input.css web/static/input.css
+COPY web/templates/ web/templates/
+COPY web/ts/ web/ts/
 
-# Copy all source
-COPY pyproject.toml uv.lock README.md ./
-COPY cli/ cli/
-COPY core/ core/
-COPY tui/ tui/
-COPY web/ web/
-
-# Build frontend assets (before uv sync so they're included in the package)
-RUN tailwindcss -i web/static/input.css -o web/static/style.css --minify
+RUN npx @tailwindcss/cli -i web/static/input.css -o web/static/style.css --minify
 RUN npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --minify
-
-# Remove TS source before installing (excluded in wheel anyway)
-RUN rm -rf web/ts
-
-# Install Python package
-RUN uv sync --frozen --no-dev
 
 
 FROM python:3.14-slim
 
 WORKDIR /app
 
-COPY --from=build /usr/local/bin/uv /usr/local/bin/uv
-COPY --from=build /app/.venv /app/.venv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy source
+COPY pyproject.toml uv.lock README.md ./
+COPY cli/ cli/
+COPY core/ core/
+COPY tui/ tui/
+COPY web/ web/
+
+# Copy built frontend assets
+COPY --from=frontend /app/web/static/style.css web/static/style.css
+COPY --from=frontend /app/web/static/app.js web/static/app.js
+
+# Remove TS source
+RUN rm -rf web/ts
+
+# Install Python package
+RUN uv sync --frozen --no-dev
 
 RUN mkdir -p /data
 

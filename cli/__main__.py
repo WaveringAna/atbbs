@@ -51,11 +51,9 @@ def dial(handle: str | None):
 )
 def serve(host: str, port: int, workers: int, public_url: str | None, data_dir: str):
     """Start the web server."""
-    import asyncio
     import os
-
-    from hypercorn.asyncio import serve as hypercorn_serve
-    from hypercorn.config import Config
+    import subprocess
+    import sys
 
     if not public_url:
         public_url = f"http://{host}:{port}"
@@ -63,15 +61,19 @@ def serve(host: str, port: int, workers: int, public_url: str | None, data_dir: 
     os.environ.setdefault("ATBBS_DATA_DIR", data_dir)
     os.environ.setdefault("PUBLIC_URL", public_url)
 
-    from web.app import create_app
+    # Ensure data dir and secrets exist before spawning workers
+    os.makedirs(data_dir, exist_ok=True)
+    from core.auth.config import load_secrets
 
-    app = create_app(data_dir=data_dir, public_url=public_url)
+    load_secrets(data_dir)
 
-    config = Config()
-    config.bind = [f"{host}:{port}"]
-    config.workers = workers
-
-    asyncio.run(hypercorn_serve(app, config))
+    cmd = [
+        sys.executable, "-m", "hypercorn",
+        "web.app:create_app()",
+        "--bind", f"{host}:{port}",
+        "--workers", str(workers),
+    ]
+    raise SystemExit(subprocess.run(cmd).returncode)
 
 
 def main():

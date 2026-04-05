@@ -2,6 +2,7 @@
   "private": true,
   "devDependencies": {
     "esbuild": "^0.25",
+    "@tailwindcss/cli": "^4",
     "tailwindcss": "^4"
   }
 }
