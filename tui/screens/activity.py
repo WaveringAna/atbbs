@@ -122,3 +122,9 @@ class ActivityScreen(Screen):
             await scroll.mount(
                 Post(author=a["handle"], date=a["created_at"], title=title, body=a["body"])
             )
+
+        # Focus first post
+        try:
+            self.query(Post).first().focus()
+        except Exception:
+            pass

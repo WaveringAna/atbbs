@@ -117,6 +117,7 @@ class HomeScreen(Screen):
 
             self.query_one("#discover-label").display = True
             lv.display = True
+            lv.index = 0 # select first bbs
 
         except Exception:
             pass
