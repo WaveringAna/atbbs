@@ -1,8 +1,11 @@
+import sys
+
 from tui.app import AtbbsApp
 
 
 def main():
-    app = AtbbsApp()
+    handle = sys.argv[1] if len(sys.argv) > 1 else None
+    app = AtbbsApp(dial=handle)
     app.run()
 
 

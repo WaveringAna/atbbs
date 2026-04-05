@@ -65,6 +65,10 @@ class AtbbsApp(App):
     ]
     SCREENS = {"home": HomeScreen}
 
+    def __init__(self, dial: str | None = None):
+        super().__init__()
+        self._dial = dial
+
     def on_mount(self) -> None:
         self.http_client = httpx.AsyncClient()
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -75,7 +79,11 @@ class AtbbsApp(App):
         # Restore saved session
         self._restore_session()
 
-        self.push_screen(HomeScreen())
+        home = HomeScreen()
+        self.push_screen(home)
+
+        if self._dial:
+            home.connect(self._dial)
 
     def _restore_session(self) -> None:
         """Load the most recent session from the database."""
