@@ -39,5 +39,12 @@
             </div>
         </div>
     </footer>
+<script>
+document.querySelectorAll('.localtime').forEach(el => {
+    const d = new Date(el.getAttribute('datetime'));
+    const pad = n => String(n).padStart(2, '0');
+    el.textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+});
+</script>
 </body>
 </html>
