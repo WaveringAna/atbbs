@@ -16,8 +16,6 @@ from tui.screens.home import HomeScreen
 class LogoutConfirmScreen(Screen):
     BINDINGS = [("escape", "app.pop_screen", "cancel")]
 
-    BINDINGS = [("escape", "app.pop_screen", "cancel")]
-
     DEFAULT_CSS = """
     LogoutConfirmScreen {
         align: center middle;
