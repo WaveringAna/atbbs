@@ -1,10 +1,11 @@
 import { escapeHtml } from "../lib/util";
 import { fetchJson } from "../lib/api";
+import { resolveIdentitiesBatch } from "../lib/atproto";
+import { SITE } from "../lib/lexicon";
 
-interface DiscoverBBS {
-  handle: string;
-  name: string;
-  description: string;
+interface UFORecord {
+  did: string;
+  record: { name?: string; description?: string };
 }
 
 export function initHome() {
@@ -16,22 +17,44 @@ export function initHome() {
     if (handle) window.location.href = "/bbs/" + encodeURIComponent(handle);
   });
 
-  fetchJson<{ bbses: DiscoverBBS[] }>("/api/discover")
-    .then((data) => {
-      if (!data.bbses?.length) return;
-      const list = document.getElementById("discover-list");
-      if (!list) return;
+  loadDiscover();
+}
 
-      for (const bbs of data.bbses) {
-        const a = document.createElement("a");
-        a.href = "/bbs/" + encodeURIComponent(bbs.handle);
-        a.className =
-          "flex items-baseline gap-3 px-3 py-2 -mx-3 rounded hover:bg-neutral-900 group";
-        a.innerHTML = `<span class="text-neutral-200 group-hover:text-white">${escapeHtml(bbs.name || bbs.handle)}</span><span class="text-neutral-500">${escapeHtml(bbs.description)}</span>`;
-        list.appendChild(a);
-      }
+async function loadDiscover() {
+  try {
+    let records = await fetchJson<UFORecord[]>(
+      `https://ufos-api.microcosm.blue/records?collection=${SITE}&limit=50`,
+    );
 
-      document.getElementById("discover")?.classList.remove("hidden");
-    })
-    .catch(() => {});
+    if (!records.length) return;
+
+    // Sample 5 random
+    if (records.length > 5) {
+      records = records.sort(() => Math.random() - 0.5).slice(0, 5);
+    }
+
+    const dids = records.map((r) => r.did);
+    const authors = await resolveIdentitiesBatch(dids);
+
+    const list = document.getElementById("discover-list");
+    if (!list) return;
+
+    for (const r of records) {
+      if (!(r.did in authors)) continue;
+      const handle = authors[r.did].handle;
+      const name = r.record.name || handle;
+      const desc = r.record.description || "";
+
+      const a = document.createElement("a");
+      a.href = "/bbs/" + encodeURIComponent(handle);
+      a.className =
+        "flex items-baseline gap-3 px-3 py-2 -mx-3 rounded hover:bg-neutral-900 group";
+      a.innerHTML = `<span class="text-neutral-200 group-hover:text-white">${escapeHtml(name)}</span><span class="text-neutral-500">${escapeHtml(desc)}</span>`;
+      list.appendChild(a);
+    }
+
+    document.getElementById("discover")?.classList.remove("hidden");
+  } catch {
+    // silently fail — discovery is optional
+  }
 }
