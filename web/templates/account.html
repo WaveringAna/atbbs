@@ -8,7 +8,7 @@
 
 <!-- Tabs -->
 <div class="flex gap-4 border-b border-neutral-800 mb-6">
-    <button onclick="showTab('inbox')" id="tab-inbox" class="tab-btn py-2 text-neutral-200 border-b-2 border-neutral-200">Inbox</button>
+    <button onclick="showTab('inbox')" id="tab-inbox" class="tab-btn py-2 text-neutral-200 border-b-2 border-neutral-200">Messages</button>
     {% if has_bbs %}
     <button onclick="showTab('bbs')" id="tab-bbs" class="tab-btn py-2 text-neutral-500 hover:text-neutral-300 border-b-2 border-transparent">{{ bbs_name }}</button>
     {% else %}
@@ -124,7 +124,7 @@
             })
             .catch(() => {
                 const loading = document.getElementById('inbox-loading');
-                if (loading) loading.textContent = 'Failed to load inbox.';
+                if (loading) loading.textContent = 'Failed to fetch messages.';
             });
     }
 

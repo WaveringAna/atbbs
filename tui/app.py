@@ -61,7 +61,7 @@ class AtbbsApp(App):
         ("ctrl+q", "quit", "quit"),
         ("ctrl+l", "login", "account"),
         ("ctrl+r", "refresh", "refresh"),
-        ("ctrl+t", "inbox", "inbox"),
+        ("ctrl+t", "inbox", "messages"),
     ]
     SCREENS = {"home": HomeScreen}
 
@@ -111,7 +111,7 @@ class AtbbsApp(App):
 
     def action_inbox(self) -> None:
         if not self.user_session:
-            self.notify("Log in to see your inbox.", severity="warning")
+            self.notify("Log in to see your messages.", severity="warning")
             return
         from tui.screens.activity import ActivityScreen
 

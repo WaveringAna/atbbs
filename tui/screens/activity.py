@@ -22,10 +22,10 @@ class ActivityScreen(Screen):
 
         yield Breadcrumb(
             ("@bbs", 1),
-            ("inbox", 0),
+            ("messages", 0),
         )
         with VerticalScroll(id="activity-scroll"):
-            yield Static("Inbox", classes="title")
+            yield Static("Messages", classes="title")
             yield Static(
                 "Replies to your threads and quotes of your replies.",
                 classes="subtitle",
@@ -100,7 +100,7 @@ class ActivityScreen(Screen):
         session = self.app.user_session
         if not session:
             try:
-                self.query_one("#activity-loading").update("Log in to see your inbox.")
+                self.query_one("#activity-loading").update("Log in to see your messages.")
             except Exception:
                 pass
             return
@@ -112,7 +112,7 @@ class ActivityScreen(Screen):
         try:
             self._items = await fetch_inbox(client, session["did"], session["pds_url"])
         except Exception:
-            self.notify("Failed to load inbox.", severity="error")
+            self.notify("Failed to fetch messages.", severity="error")
             return
 
         try:
