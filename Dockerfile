@@ -9,6 +9,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 /usr/local/bin/tailwindcss
 RUN chmod +x /usr/local/bin/tailwindcss
 
+# Install esbuild
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm && rm -rf /var/lib/apt/lists/*
+COPY package.json ./
+RUN npm install
+
 # Copy dependency files first (layer caching)
 COPY pyproject.toml uv.lock README.md ./
 
@@ -21,8 +26,9 @@ COPY core/ core/
 COPY web/ web/
 COPY lexicons/ lexicons/
 
-# Build Tailwind CSS
+# Build frontend assets
 RUN tailwindcss -i web/static/input.css -o web/static/style.css --minify
+RUN npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --minify
 
 # Create data directory for secrets and database
 RUN mkdir -p /data

@@ -23,6 +23,12 @@ jobs:
       - name: Build CSS
         run: ./tailwindcss -i web/static/input.css -o web/static/style.css --minify
 
+      - name: Install esbuild
+        run: npm install
+
+      - name: Build JS
+        run: npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --minify
+
       - name: Build package
         run: uv build
 

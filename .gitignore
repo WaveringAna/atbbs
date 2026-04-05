@@ -12,6 +12,9 @@ wheels/
 # Tailwind binary
 tailwindcss
 
+# Node
+node_modules/
+
 # Auth secrets and database
 secrets.json
 *.db

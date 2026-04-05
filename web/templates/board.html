@@ -42,63 +42,10 @@
 </details>
 {% endif %}
 
-<div id="threads">
+<div id="threads" data-handle="{{ handle }}" data-slug="{{ board.slug }}">
     <p id="threads-loading" class="text-neutral-500">Loading threads...</p>
 </div>
 <div id="threads-next" class="mt-6 text-center hidden">
     <button id="load-more" class="text-neutral-500 hover:text-neutral-300">next page →</button>
 </div>
-
-<script>
-    const handle = "{{ handle }}";
-    const slug = "{{ board.slug }}";
-    let nextCursor = null;
-
-    function renderThread(t) {
-        const a = document.createElement('a');
-        a.href = `/bbs/${handle}/thread/${t.did}/${t.rkey}`;
-        a.className = "flex items-baseline justify-between gap-4 px-3 py-2.5 -mx-3 rounded hover:bg-neutral-900 group";
-        a.innerHTML = `<span class="text-neutral-300 group-hover:text-white truncate">${escapeHtml(t.title)}</span><span class="shrink-0 text-xs text-neutral-500">${escapeHtml(t.handle)} · ${relativeDate(t.created_at)}</span>`;
-        return a;
-    }
-
-    function loadThreads(cursor) {
-        let url = `/api/threads/${encodeURIComponent(handle)}/${encodeURIComponent(slug)}`;
-        if (cursor) url += `?cursor=${encodeURIComponent(cursor)}`;
-
-        fetch(url)
-            .then(r => r.json())
-            .then(data => {
-                const container = document.getElementById('threads');
-                const loading = document.getElementById('threads-loading');
-                if (loading) loading.remove();
-
-                data.threads.forEach(t => {
-                    container.appendChild(renderThread(t));
-                });
-
-                if (data.cursor) {
-                    nextCursor = data.cursor;
-                    document.getElementById('threads-next').classList.remove('hidden');
-                } else {
-                    nextCursor = null;
-                    document.getElementById('threads-next').classList.add('hidden');
-                }
-
-                if (container.children.length === 0) {
-                    container.innerHTML = '<p class="text-neutral-500">No threads yet.</p>';
-                }
-            })
-            .catch(() => {
-                const loading = document.getElementById('threads-loading');
-                if (loading) loading.textContent = 'Could not fetch threads.';
-            });
-    }
-
-    document.getElementById('load-more').addEventListener('click', () => {
-        if (nextCursor) loadThreads(nextCursor);
-    });
-
-    loadThreads(null);
-</script>
 {% endblock %}

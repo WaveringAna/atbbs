@@ -4,11 +4,15 @@ dev:
     #!/bin/sh
     trap 'kill 0' EXIT
     ./tailwindcss -i web/static/input.css -o web/static/style.css --watch &
+    npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --watch &
     QUART_DEBUG=1 uv run quart --app main:app run --reload &
     wait
 
 css:
     ./tailwindcss -i web/static/input.css -o web/static/style.css --minify
+
+js:
+    npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --minify
 
 tui:
     uv run python -m tui
@@ -31,7 +35,7 @@ version ver:
     uv lock
 
 # Tag and push a release
-release ver: (version ver) css
+release ver: (version ver) css js
     git add -A
     git commit -m "v{{ ver }}"
     git tag "v{{ ver }}"

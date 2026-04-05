@@ -38,28 +38,4 @@
     </div>
 </div>
 
-<script>
-    document.getElementById("handle-form").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const handle = this.elements["handle"].value.trim();
-        if (handle) window.location.href = "/bbs/" + encodeURIComponent(handle);
-    });
-
-    fetch("/api/discover")
-        .then(r => r.json())
-        .then(data => {
-            if (data.bbses && data.bbses.length > 0) {
-                const list = document.getElementById("discover-list");
-                data.bbses.forEach(bbs => {
-                    const a = document.createElement("a");
-                    a.href = "/bbs/" + encodeURIComponent(bbs.handle);
-                    a.className = "flex items-baseline gap-3 px-3 py-2 -mx-3 rounded hover:bg-neutral-900 group";
-                    a.innerHTML = `<span class="text-neutral-200 group-hover:text-white">${bbs.name || bbs.handle}</span><span class="text-neutral-500">${bbs.description}</span>`;
-                    list.appendChild(a);
-                });
-                document.getElementById("discover").classList.remove("hidden");
-            }
-        })
-        .catch(() => {});
-</script>
 {% endblock %}
