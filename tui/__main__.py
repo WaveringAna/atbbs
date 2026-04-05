@@ -26,7 +26,7 @@ def dial(handle: str | None):
 
 
 @cli.command()
-@click.option("--host", default="0.0.0.0", show_default=True, help="Host to bind to.")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Host to bind to.")
 @click.option("--port", "-p", default=8000, show_default=True, type=int, help="Port to bind to.")
 @click.option("--public-url", default=None, help="Public URL for OAuth callbacks. [default: http://{host}:{port}]")
 @click.option("--data-dir", default=DEFAULT_DATA_DIR, show_default=True, help="Directory for secrets and database.")
