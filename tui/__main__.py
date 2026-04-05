@@ -28,17 +28,32 @@ def dial(handle: str | None):
 @cli.command()
 @click.option("--host", default="127.0.0.1", show_default=True, help="Host to bind to.")
 @click.option("--port", "-p", default=8000, show_default=True, type=int, help="Port to bind to.")
+@click.option("--workers", "-w", default=1, show_default=True, type=int, help="Number of worker processes.")
 @click.option("--public-url", default=None, help="Public URL for OAuth callbacks. [default: http://{host}:{port}]")
 @click.option("--data-dir", default=DEFAULT_DATA_DIR, show_default=True, help="Directory for secrets and database.")
-def serve(host: str, port: int, public_url: str | None, data_dir: str):
+def serve(host: str, port: int, workers: int, public_url: str | None, data_dir: str):
     """Start the web server."""
-    from web.app import create_app
+    import asyncio
+    import os
+
+    from hypercorn.asyncio import serve as hypercorn_serve
+    from hypercorn.config import Config
 
     if not public_url:
         public_url = f"http://{host}:{port}"
 
+    os.environ.setdefault("ATBBS_DATA_DIR", data_dir)
+    os.environ.setdefault("PUBLIC_URL", public_url)
+
+    from web.app import create_app
+
     app = create_app(data_dir=data_dir, public_url=public_url)
-    app.run(host=host, port=port)
+
+    config = Config()
+    config.bind = [f"{host}:{port}"]
+    config.workers = workers
+
+    asyncio.run(hypercorn_serve(app, config))
 
 
 def main():
