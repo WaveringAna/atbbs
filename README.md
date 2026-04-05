@@ -1,24 +1,24 @@
-[![Build](https://github.com/alyraffauf/atbbs/actions/workflows/docker.yml/badge.svg?branch=master)](https://github.com/alyraffauf/atbbs/actions/workflows/docker.yml) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0) [![Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/alyraffauf)
-
 <div align="center">
+  <p>
+    <a href="https://github.com/alyraffauf/atbbs/actions/workflows/docker.yml"><img src="https://github.com/alyraffauf/atbbs/actions/workflows/docker.yml/badge.svg?branch=master" alt="Build"></a>
+    <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3"></a>
+    <a href="https://ko-fi.com/alyraffauf"><img src="https://img.shields.io/badge/Donate-Ko--fi-ff5e5b?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
+  </p>
+  <img width="128" height="128" src="assets/logo.svg" alt="@bbs logo">
   <h1>@bbs</h1>
-  <h3>Bulletin boards on the atmosphere.</h3>
+  <h3>Bulletin boards on the Atmosphere.</h3>
   <p>Run a BBS from your own account. No server required. Users own their posts, communities migrate freely. Built on <a href="https://atproto.com">atproto</a>.</p>
 </div>
 
 ## Features
 
-- **Web app and TUI**: Browse, post, and manage BBSes from your browser or terminal.
-- **Built on atproto**: All data lives in user repos as `xyz.atboards` records. No central database.
-- **No server needed to run a BBS**: A sysop just publishes records to their own PDS.
-- **OAuth login**: Sign in with your Bluesky handle or any atproto account.
-- **Discover BBSes**: The home screen shows BBSes from across the network.
-- **Flat replies with quotes**: Threads with chronological replies. Quote other replies inline.
-- **File attachments**: Attach files to threads and replies, stored as blobs in your repo.
-- **Messages**: See replies to your threads and quotes of your replies in one place.
-- **Moderation**: Sysops can ban users, hide posts, and manage their BBS.
-- **Sysop tools**: Create and edit your BBS, manage boards, post news, delete your BBS.
-- **Self-hostable**: One Docker command to run the web app.
+- **Web and terminal**: Use it in your browser or dial in from a TUI.
+- **Serverless**: Run a BBS straight from your atproto account. No hosting required.
+- **Replies and quotes**: Flat threads with inline quoting.
+- **Attachments**: Upload files to threads and replies.
+- **Messages**: Know when someone replies to your thread or quotes you.
+- **Moderation**: Ban users, hide posts, manage your boards.
+- **Discovery**: Browse BBSes from across the network.
 
 ## Quick start
 
