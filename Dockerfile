@@ -31,10 +31,9 @@ COPY --from=build /usr/local/bin/uv /usr/local/bin/uv
 COPY --from=build /app/.venv /app/.venv
 
 # Copy application code
-COPY main.py ./
+COPY cli/ cli/
 COPY core/ core/
 COPY web/ web/
-COPY lexicons/ lexicons/
 
 # Copy built frontend assets
 COPY --from=build /app/web/static/style.css web/static/style.css
@@ -52,4 +51,4 @@ EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
 
-CMD ["uv", "run", "hypercorn", "main:app", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["uv", "run", "atbbs", "serve", "--host", "0.0.0.0", "--port", "8000", "--workers", "3", "--data-dir", "/data"]
