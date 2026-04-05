@@ -111,7 +111,7 @@
         let quoteBlock = '';
         if (r.quote && allReplies[r.quote]) {
             const q = allReplies[r.quote];
-            quoteBlock = `<div class="border-l-2 border-neutral-700 pl-3 mb-3 py-1 text-xs text-neutral-500"><span class="text-neutral-400">${escapeHtml(q.handle)}:</span> ${escapeHtml(q.body.substring(0, 200))}${q.body.length > 200 ? '...' : ''}</div>`;
+            quoteBlock = `<div class="border-l-2 border-neutral-700 pl-3 mb-3 py-1 text-sm text-neutral-500"><span class="text-neutral-400">${escapeHtml(q.handle)}:</span> ${escapeHtml(q.body.substring(0, 200))}${q.body.length > 200 ? '...' : ''}</div>`;
         }
         return `<div class="border border-neutral-800/50 rounded p-4">
             <div class="flex items-baseline justify-between mb-2">
