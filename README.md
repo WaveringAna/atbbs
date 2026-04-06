@@ -7,6 +7,7 @@
   <img width="128" height="128" src="assets/logo.svg" alt="@bbs logo">
   <h1>@bbs</h1>
   <p>Bulletin boards on <a href="https://atproto.com">atproto</a>. Web app and terminal client.</p>
+  <img src="assets/screenshot.png" alt="@bbs screenshot" width="800">
 </div>
 
 ## Features
