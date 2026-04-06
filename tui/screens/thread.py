@@ -22,11 +22,12 @@ class ThreadScreen(Screen):
         Binding("ctrl+s", "save_attachment", "save attachments", show=False),
     ]
 
-    def __init__(self, bbs: BBS, handle: str, thread: Thread) -> None:
+    def __init__(self, bbs: BBS, handle: str, thread: Thread, focus_reply: str | None = None) -> None:
         super().__init__()
         self.bbs = bbs
         self.handle = handle
         self.thread = thread
+        self._focus_reply = focus_reply
         self._page: int = 1
         self._total_pages: int = 1
         self._replies_map: dict[str, object] = {}
@@ -65,7 +66,8 @@ class ThreadScreen(Screen):
             self.query(Post).first().focus()
         except Exception:
             pass
-        self.load_replies()
+        self.load_replies(focus_reply=self._focus_reply)
+        self._focus_reply = None  # only use on first load
 
     def _update_page_status(self) -> None:
         text = f"page {self._page} of {self._total_pages}" if self._total_pages > 1 else ""
@@ -79,7 +81,7 @@ class ThreadScreen(Screen):
         self._replies_map.clear()
 
     @work(exclusive=True)
-    async def load_replies(self, page: int = 1) -> None:
+    async def load_replies(self, page: int = 1, focus_reply: str | None = None) -> None:
         client = self.app.http_client
         try:
             result = await fetch_replies(
@@ -87,6 +89,7 @@ class ThreadScreen(Screen):
                 self.bbs,
                 self.thread,
                 page=page,
+                focus_reply=focus_reply,
             )
         except Exception:
             self.notify("Could not fetch replies.", severity="error")

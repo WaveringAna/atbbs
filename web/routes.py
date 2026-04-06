@@ -245,6 +245,7 @@ async def api_replies(did: str, tid: str):
     client = current_app.http_client
     page = int(request.args.get("page", 1))
     handle = request.args.get("handle", "")
+    focus_reply = request.args.get("reply", None)
 
     try:
         if handle:
@@ -276,7 +277,7 @@ async def api_replies(did: str, tid: str):
     )
 
     try:
-        result = await hydrate_replies(client, bbs, dummy_thread, page=page)
+        result = await hydrate_replies(client, bbs, dummy_thread, page=page, focus_reply=focus_reply)
     except Exception:
         return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 

@@ -12,6 +12,7 @@ interface InboxItem {
   type: string;
   thread_title: string;
   thread_uri: string;
+  reply_uri: string;
   handle: string;
   body: string;
   created_at: string;
@@ -49,7 +50,7 @@ function renderItem(m: InboxItem, handle: string): HTMLElement {
   const { did: threadDid, rkey: threadRkey } = parseAtUri(m.thread_uri);
 
   const el = document.createElement("a");
-  el.href = `/bbs/${handle}/thread/${threadDid}/${threadRkey}`;
+  el.href = `/bbs/${handle}/thread/${threadDid}/${threadRkey}?reply=${encodeURIComponent(m.reply_uri)}`;
   el.className =
     "block border border-neutral-800/50 rounded p-4 mb-2 hover:bg-neutral-900";
   const label =
@@ -73,6 +74,7 @@ function recordsToInboxItems(
     type,
     thread_title: threadTitle,
     thread_uri: threadUri,
+    reply_uri: r.uri,
     handle: r.handle,
     body: ((r.value.body as string) ?? "").substring(0, 200),
     created_at: (r.value.createdAt as string) ?? "",

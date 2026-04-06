@@ -65,14 +65,27 @@ async def hydrate_replies(
     thread: Thread,
     page: int = 1,
     page_size: int = 10,
+    focus_reply: str | None = None,
 ) -> RepliesPage:
-    """Fetch all reply refs, then hydrate only the requested page (oldest first)."""
+    """Fetch all reply refs, then hydrate only the requested page (oldest first).
+
+    If focus_reply is provided (an AT URI), automatically jump to the page
+    containing that reply.
+    """
     # Fetch all refs (cheap — just did/collection/rkey)
     backlinks = await get_replies(client, thread.uri, limit=1000)
     all_refs = list(reversed(backlinks.records))  # oldest first
 
     total = len(all_refs)
     total_pages = max(1, (total + page_size - 1) // page_size)
+
+    # If a specific reply is requested, find its page
+    if focus_reply:
+        for i, ref in enumerate(all_refs):
+            if f"at://{ref.did}/{ref.collection}/{ref.rkey}" == focus_reply:
+                page = (i // page_size) + 1
+                break
+
     page = max(1, min(page, total_pages))
 
     # Slice the page we need
@@ -406,6 +419,7 @@ async def fetch_inbox(
                     items.append(
                         {
                             "type": "reply",
+                            "reply_uri": r.uri,
                             "thread_title": thread_title,
                             "thread_uri": thread_uri,
                             "handle": authors[author_did].handle,
@@ -450,6 +464,7 @@ async def fetch_inbox(
                     items.append(
                         {
                             "type": "quote",
+                            "reply_uri": r.uri,
                             "thread_title": "",
                             "thread_uri": thread_uri,
                             "handle": authors[author_did].handle,

@@ -206,14 +206,15 @@ async function loadReplyPage(
   handle: string,
   userDid: string,
   sysopDid: string,
+  focusReply?: string,
 ) {
   const container = document.getElementById("replies")!;
   const loading = document.getElementById("replies-loading");
 
   try {
-    const data = await fetchJson<RepliesResponse>(
-      `/api/replies/${threadDid}/${threadTid}?handle=${encodeURIComponent(handle)}&page=${page}`,
-    );
+    let url = `/api/replies/${threadDid}/${threadTid}?handle=${encodeURIComponent(handle)}&page=${page}`;
+    if (focusReply) url += `&reply=${encodeURIComponent(focusReply)}`;
+    const data = await fetchJson<RepliesResponse>(url);
 
     if (loading) loading.remove();
 
@@ -265,8 +266,10 @@ export function initThread() {
     if (btn) quoteReply(btn.dataset.uri!, btn.dataset.handle!);
   });
 
-  const initialPage = parseInt(new URLSearchParams(window.location.search).get("page") ?? "1", 10);
-  loadReplyPage(initialPage, threadDid, threadTid, handle, userDid, sysopDid);
+  const params = new URLSearchParams(window.location.search);
+  const initialPage = parseInt(params.get("page") ?? "1", 10);
+  const focusReply = params.get("reply") ?? undefined;
+  loadReplyPage(initialPage, threadDid, threadTid, handle, userDid, sysopDid, focusReply);
 
   window.addEventListener("popstate", () => {
     const p = parseInt(new URLSearchParams(window.location.search).get("page") ?? "1", 10);

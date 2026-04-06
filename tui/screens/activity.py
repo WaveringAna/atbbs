@@ -90,7 +90,8 @@ class ActivityScreen(Screen):
             )
             from tui.screens.thread import ThreadScreen
 
-            self.app.push_screen(ThreadScreen(bbs, handle, thread))
+            focus_reply = item.get("reply_uri")
+            self.app.push_screen(ThreadScreen(bbs, handle, thread, focus_reply=focus_reply))
         except Exception:
             self.notify("Could not open thread.", severity="error")
 
