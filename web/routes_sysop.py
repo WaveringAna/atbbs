@@ -68,11 +68,12 @@ async def delete_bbs():
         return redirect("/account")
 
     # Delete board records
+    failed = []
     for slug in board_slugs:
         try:
             await authed_delete_record(user, lexicon.BOARD, slug)
         except Exception:
-            pass
+            failed.append(f"board/{slug}")
 
     # Delete news records (via Constellation backlinks)
     from core.constellation import get_news
@@ -85,9 +86,12 @@ async def delete_bbs():
                 try:
                     await authed_delete_record(user, lexicon.NEWS, ref.rkey)
                 except Exception:
-                    pass
+                    failed.append(f"news/{ref.rkey}")
     except Exception:
-        pass
+        failed.append("news lookup")
+
+    if failed:
+        return await error(f"Could not delete: {', '.join(failed)}. Site record was not deleted.")
 
     # Delete site record
     try:

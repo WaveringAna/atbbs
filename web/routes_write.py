@@ -50,10 +50,12 @@ async def create_thread(handle: str, slug: str):
     from core.resolver import resolve_bbs
 
     client = current_app.http_client
+    from quart import render_template
+
     try:
         bbs = await resolve_bbs(client, handle)
     except Exception:
-        return redirect(f"/bbs/{handle}/board/{slug}")
+        return await render_template("error.html", message="Could not reach this BBS."), 503
 
     if bbs.site.is_banned(user["did"]):
         return redirect(f"/bbs/{handle}/board/{slug}")
