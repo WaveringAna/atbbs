@@ -4,7 +4,7 @@ dev:
     #!/bin/sh
     trap 'kill 0' EXIT
     npx @tailwindcss/cli -i web/static/input.css -o web/static/style.css --watch &
-    npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --watch &
+    npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --watch=forever &
     PUBLIC_URL=http://localhost:5000 QUART_DEBUG=1 uv run quart --app "web.app:create_app()" run --reload &
     wait
 

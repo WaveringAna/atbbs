@@ -1,5 +1,5 @@
 import { escapeHtml, relativeDate, formatFullDate, getData } from "../lib/util";
-import { createPaginatedLoader } from "../lib/pagination";
+import { fetchJson } from "../lib/api";
 import { REPLY } from "../lib/lexicon";
 
 interface Attachment {
@@ -113,6 +113,143 @@ function renderReply(
   </div>`;
 }
 
+// --- Data loading ---
+
+interface RepliesResponse {
+  replies: ReplyItem[];
+  page: number;
+  total_pages: number;
+  total_replies: number;
+}
+
+function buildPageNav(
+  current: number,
+  total: number,
+  goToPage: (page: number) => void,
+): HTMLElement {
+  const nav = document.createElement("div");
+  nav.className = "flex items-center justify-center gap-2 text-sm w-full";
+
+  function addBtn(label: string, page: number | null, active = false) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    if (active) {
+      btn.className = "text-neutral-200 bg-neutral-800 rounded px-3 py-1";
+    } else if (page !== null) {
+      btn.className = "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 rounded px-3 py-1";
+      btn.addEventListener("click", () => goToPage(page));
+    } else {
+      btn.className = "text-neutral-600 px-2 py-1 cursor-default";
+      btn.disabled = true;
+    }
+    nav.appendChild(btn);
+  }
+
+  // Prev
+  if (current > 1) addBtn("←", current - 1);
+
+  // Page numbers: show window of 5 around current
+  const windowSize = 2;
+  let start = Math.max(1, current - windowSize);
+  let end = Math.min(total, current + windowSize);
+
+  // Ensure at least 5 pages shown if available
+  if (end - start < 4) {
+    if (start === 1) end = Math.min(total, start + 4);
+    else if (end === total) start = Math.max(1, end - 4);
+  }
+
+  if (start > 1) {
+    addBtn("1", 1);
+    if (start > 2) addBtn("...", null);
+  }
+
+  for (let i = start; i <= end; i++) {
+    addBtn(String(i), i, i === current);
+  }
+
+  if (end < total) {
+    if (end < total - 1) addBtn("...", null);
+    addBtn(String(total), total);
+  }
+
+  // Next
+  if (current < total) addBtn("→", current + 1);
+
+  return nav;
+}
+
+function updateNavs(
+  current: number,
+  total: number,
+  goToPage: (page: number) => void,
+) {
+  for (const id of ["replies-nav-top", "replies-nav-bottom"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.innerHTML = "";
+    el.appendChild(buildPageNav(current, total, goToPage));
+    el.classList.remove("hidden");
+  }
+}
+
+function hideNavs() {
+  for (const id of ["replies-nav-top", "replies-nav-bottom"]) {
+    document.getElementById(id)?.classList.add("hidden");
+  }
+}
+
+async function loadReplyPage(
+  page: number,
+  threadDid: string,
+  threadTid: string,
+  handle: string,
+  userDid: string,
+  sysopDid: string,
+) {
+  const container = document.getElementById("replies")!;
+  const loading = document.getElementById("replies-loading");
+
+  try {
+    const data = await fetchJson<RepliesResponse>(
+      `/api/replies/${threadDid}/${threadTid}?handle=${encodeURIComponent(handle)}&page=${page}`,
+    );
+
+    if (loading) loading.remove();
+
+    for (const r of data.replies) {
+      allReplies[r.uri] = r;
+    }
+
+    for (const r of data.replies) {
+      container.insertAdjacentHTML(
+        "beforeend",
+        renderReply(r, handle, threadDid, threadTid, userDid, sysopDid),
+      );
+    }
+
+    if (data.total_pages > 1) {
+      const goToPage = (p: number) => {
+        container.innerHTML =
+          '<p id="replies-loading" class="text-neutral-500">Loading replies...</p>';
+        hideNavs();
+        const url = new URL(window.location.href);
+        url.searchParams.set("page", String(p));
+        history.pushState(null, "", url.toString());
+        loadReplyPage(p, threadDid, threadTid, handle, userDid, sysopDid);
+        document.getElementById("replies-nav-top")?.scrollIntoView({ behavior: "smooth" });
+      };
+      updateNavs(data.page, data.total_pages, goToPage);
+    }
+
+    if (container.children.length === 0 && !userDid) {
+      container.innerHTML = '<p class="text-neutral-500">No replies yet.</p>';
+    }
+  } catch {
+    if (loading) loading.textContent = "Could not fetch replies.";
+  }
+}
+
 // --- Init ---
 
 export function initThread() {
@@ -128,25 +265,14 @@ export function initThread() {
     if (btn) quoteReply(btn.dataset.uri!, btn.dataset.handle!);
   });
 
-  createPaginatedLoader<ReplyItem>({
-    fetchUrl: (cursor) => {
-      let url = `/api/replies/${threadDid}/${threadTid}?handle=${encodeURIComponent(handle)}`;
-      if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
-      return url;
-    },
-    containerId: "replies",
-    loadingId: "replies-loading",
-    nextContainerId: "replies-next",
-    loadMoreId: "load-more",
-    dataKey: "replies",
-    emptyMessage: userDid ? undefined : "No replies yet.",
-    onData: (data) => {
-      const replies = data.replies as ReplyItem[];
-      for (const r of replies) {
-        allReplies[r.uri] = r;
-      }
-    },
-    renderItem: (r) =>
-      renderReply(r, handle, threadDid, threadTid, userDid, sysopDid),
+  const initialPage = parseInt(new URLSearchParams(window.location.search).get("page") ?? "1", 10);
+  loadReplyPage(initialPage, threadDid, threadTid, handle, userDid, sysopDid);
+
+  window.addEventListener("popstate", () => {
+    const p = parseInt(new URLSearchParams(window.location.search).get("page") ?? "1", 10);
+    const container = document.getElementById("replies")!;
+    container.innerHTML = '<p id="replies-loading" class="text-neutral-500">Loading replies...</p>';
+    hideNavs();
+    loadReplyPage(p, threadDid, threadTid, handle, userDid, sysopDid);
   });
 }

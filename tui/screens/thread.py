@@ -25,7 +25,8 @@ class ThreadScreen(Screen):
         self.bbs = bbs
         self.handle = handle
         self.thread = thread
-        self.next_cursor: str | None = None
+        self._page: int = 1
+        self._total_pages: int = 1
         self._replies_map: dict[str, object] = {}
 
     def compose(self) -> ComposeResult:
@@ -63,26 +64,28 @@ class ThreadScreen(Screen):
         self.load_replies()
 
     @work(exclusive=True)
-    async def load_replies(self, cursor: str | None = None) -> None:
+    async def load_replies(self, page: int = 1) -> None:
         client = self.app.http_client
         try:
-            replies, self.next_cursor = await fetch_replies(
+            result = await fetch_replies(
                 client,
                 self.bbs,
                 self.thread,
-                cursor=cursor,
+                page=page,
             )
         except Exception:
             self.notify("Could not fetch replies.", severity="error")
             return
 
+        self._page = result.page
+        self._total_pages = result.total_pages
         scroll = self.query_one("#thread-scroll")
 
         # Store for quote lookup
-        for r in replies:
+        for r in result.replies:
             self._replies_map[r.uri] = r
 
-        for r in replies:
+        for r in result.replies:
             quote_text = None
             if r.quote and r.quote in self._replies_map:
                 q = self._replies_map[r.quote]
@@ -103,8 +106,8 @@ class ThreadScreen(Screen):
                 )
             )
 
-        if self.next_cursor:
-            await scroll.mount(Button("next page →", id="next-page"))
+        if self._page < self._total_pages:
+            await scroll.mount(Button(f"page {self._page + 1} of {self._total_pages} →", id="next-page"))
 
     def refresh_data(self) -> None:
         self._do_refresh()
@@ -119,50 +122,14 @@ class ThreadScreen(Screen):
         except Exception:
             pass
 
-        client = self.app.http_client
-        try:
-            replies, self.next_cursor = await fetch_replies(
-                client,
-                self.bbs,
-                self.thread,
-            )
-        except Exception:
-            self.notify("Could not fetch replies.", severity="error")
-            return
-
-        scroll = self.query_one("#thread-scroll")
         self._replies_map.clear()
-        for r in replies:
-            self._replies_map[r.uri] = r
-
-        for r in replies:
-            quote_text = None
-            if r.quote and r.quote in self._replies_map:
-                q = self._replies_map[r.quote]
-                body_preview = q.body[:200] + ("..." if len(q.body) > 200 else "")
-                quote_text = f"{q.author.handle}: {body_preview}"
-
-            await scroll.mount(
-                Post(
-                    author=r.author.handle,
-                    date=r.created_at,
-                    body=r.body,
-                    author_did=r.author.did,
-                    author_pds=r.author.pds,
-                    record_uri=r.uri,
-                    collection=lexicon.REPLY,
-                    attachments=r.attachments,
-                    quote_text=quote_text,
-                )
-            )
-
-        if self.next_cursor:
-            await scroll.mount(Button("next page →", id="next-page"))
+        self._page = 1
+        self.load_replies(page=1)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "next-page" and self.next_cursor:
+        if event.button.id == "next-page" and self._page < self._total_pages:
             event.button.remove()
-            self.load_replies(cursor=self.next_cursor)
+            self.load_replies(page=self._page + 1)
 
     def action_reply(self) -> None:
         session = require_session(self)

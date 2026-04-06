@@ -3,6 +3,8 @@
 Framework-agnostic. Used by both web and TUI.
 """
 
+from dataclasses import dataclass
+
 import httpx
 
 from core import lexicon
@@ -47,15 +49,41 @@ async def hydrate_threads(
     return threads, backlinks.cursor
 
 
+@dataclass
+class RepliesPage:
+    """A page of hydrated replies with pagination info."""
+
+    replies: list[Reply]
+    page: int
+    total_pages: int
+    total_replies: int
+
+
 async def hydrate_replies(
     client: httpx.AsyncClient,
     bbs: BBS,
     thread: Thread,
-    cursor: str | None = None,
-) -> tuple[list[Reply], str | None]:
-    """Fetch and hydrate replies for a thread."""
-    backlinks = await get_replies(client, thread.uri, cursor=cursor)
-    records = await get_records_batch(client, backlinks.records)
+    page: int = 1,
+    page_size: int = 10,
+) -> RepliesPage:
+    """Fetch all reply refs, then hydrate only the requested page (oldest first)."""
+    # Fetch all refs (cheap — just did/collection/rkey)
+    backlinks = await get_replies(client, thread.uri, limit=1000)
+    all_refs = list(reversed(backlinks.records))  # oldest first
+
+    total = len(all_refs)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page = max(1, min(page, total_pages))
+
+    # Slice the page we need
+    start = (page - 1) * page_size
+    page_refs = all_refs[start : start + page_size]
+
+    if not page_refs:
+        return RepliesPage(replies=[], page=page, total_pages=total_pages, total_replies=total)
+
+    # Hydrate only this page
+    records = await get_records_batch(client, page_refs)
     records = filter_moderated(records, bbs.site.banned_dids, bbs.site.hidden_posts)
 
     parsed = {r.uri: AtUri.parse(r.uri) for r in records}
@@ -77,7 +105,7 @@ async def hydrate_replies(
         if parsed[r.uri].did in authors
     ]
     replies.sort(key=lambda t: t.created_at)
-    return replies, backlinks.cursor
+    return RepliesPage(replies=replies, page=page, total_pages=total_pages, total_replies=total)
 
 
 async def _try_refresh_token(client, session, session_updater):

@@ -243,7 +243,7 @@ async def thread(handle: str, did: str, tid: str):
 @bp.route("/api/replies/<did>/<tid>")
 async def api_replies(did: str, tid: str):
     client = current_app.http_client
-    cursor = request.args.get("cursor")
+    page = int(request.args.get("page", 1))
     handle = request.args.get("handle", "")
 
     try:
@@ -257,10 +257,10 @@ async def api_replies(did: str, tid: str):
     if bbs:
         banned = await check_banned(bbs)
         if banned:
-            return {"replies": [], "cursor": None, "banned": True}
+            return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 
     if not bbs:
-        return {"replies": [], "cursor": None}
+        return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 
     # Build a minimal Thread object for hydrate_replies
     thread_uri = str(AtUri(did, lexicon.THREAD, tid))
@@ -276,11 +276,9 @@ async def api_replies(did: str, tid: str):
     )
 
     try:
-        replies, next_cursor = await hydrate_replies(
-            client, bbs, dummy_thread, cursor=cursor
-        )
+        result = await hydrate_replies(client, bbs, dummy_thread, page=page)
     except Exception:
-        return {"replies": [], "cursor": None}
+        return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 
     return {
         "replies": [
@@ -295,7 +293,9 @@ async def api_replies(did: str, tid: str):
                 "attachments": r.attachments or [],
                 "quote": r.quote,
             }
-            for r in replies
+            for r in result.replies
         ],
-        "cursor": next_cursor,
+        "page": result.page,
+        "total_pages": result.total_pages,
+        "total_replies": result.total_replies,
     }
