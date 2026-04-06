@@ -4,7 +4,7 @@ import json
 from urllib.parse import quote, urlencode, urlparse
 
 from authlib.jose import JsonWebKey
-from quart import Blueprint, current_app, redirect, request, session
+from quart import Blueprint, current_app, redirect, render_template, request, session
 
 from core.auth.oauth import (
     exchange_code,
@@ -93,14 +93,20 @@ async def login():
     client_id, redirect_uri = _compute_client_id()
 
     # Resolve identity
-    identity = await resolve_identity(client, handle)
+    try:
+        identity = await resolve_identity(client, handle)
+    except Exception:
+        return await render_template("login.html", error="Could not resolve that handle.")
     pds_url = identity.pds
     if not pds_url:
-        return redirect("/")
+        return await render_template("login.html", error="Could not resolve that handle.")
 
     # Discover auth server
-    authserver_url = await resolve_pds_authserver(client, pds_url)
-    authserver_meta = await fetch_authserver_meta(client, authserver_url)
+    try:
+        authserver_url = await resolve_pds_authserver(client, pds_url)
+        authserver_meta = await fetch_authserver_meta(client, authserver_url)
+    except Exception:
+        return await render_template("login.html", error="Could not reach your PDS. Try again.")
 
     # Generate DPoP keypair for this login attempt
     dpop_key = JsonWebKey.generate_key("EC", "P-256", is_private=True)

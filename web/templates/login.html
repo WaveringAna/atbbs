@@ -3,6 +3,7 @@
 {% block content %}
 <h1 class="text-lg text-neutral-200 mb-1">log in</h1>
 <p class="text-neutral-500 mb-6">Sign in with your atproto handle to post threads and replies.</p>
+{% if error %}<p class="text-red-400 mb-4">{{ error }}</p>{% endif %}
 <form method="post" action="/oauth/login" class="flex gap-2 max-w-md">
     <input
         type="text"
