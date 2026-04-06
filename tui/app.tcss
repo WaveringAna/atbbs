@@ -108,6 +108,12 @@ ComposeReplyScreen Vertical {
     padding: 1 4;
 }
 
+.page-status {
+    color: #8a8a8a;
+    text-align: center;
+    margin: 1 0;
+}
+
 /* home screen */
 HomeScreen {
     align: center middle;

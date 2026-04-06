@@ -3,7 +3,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
 from textual.screen import Screen
-from textual.widgets import Button, Footer
+from textual.widgets import Footer, Static
 
 from core import lexicon
 from core.models import AtUri, BBS, Thread
@@ -17,6 +17,8 @@ class ThreadScreen(Screen):
         Binding("escape", "app.pop_screen", "back"),
         Binding("ctrl+e", "reply", "reply"),
         Binding("ctrl+d", "delete", "delete"),
+        Binding("[", "prev_page", "prev page"),
+        Binding("]", "next_page", "next page"),
         Binding("ctrl+s", "save_attachment", "save attachments", show=False),
     ]
 
@@ -54,6 +56,8 @@ class ThreadScreen(Screen):
                 collection=lexicon.THREAD,
                 attachments=self.thread.attachments,
             )
+            yield Static("", id="page-status-top", classes="page-status")
+            yield Static("", id="page-status-bottom", classes="page-status")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -62,6 +66,17 @@ class ThreadScreen(Screen):
         except Exception:
             pass
         self.load_replies()
+
+    def _update_page_status(self) -> None:
+        text = f"page {self._page} of {self._total_pages}" if self._total_pages > 1 else ""
+        self.query_one("#page-status-top", Static).update(text)
+        self.query_one("#page-status-bottom", Static).update(text)
+
+    def _clear_replies(self) -> None:
+        for post in self.query(Post):
+            if post.collection == lexicon.REPLY:
+                post.remove()
+        self._replies_map.clear()
 
     @work(exclusive=True)
     async def load_replies(self, page: int = 1) -> None:
@@ -79,9 +94,10 @@ class ThreadScreen(Screen):
 
         self._page = result.page
         self._total_pages = result.total_pages
+        self._update_page_status()
+
         scroll = self.query_one("#thread-scroll")
 
-        # Store for quote lookup
         for r in result.replies:
             self._replies_map[r.uri] = r
 
@@ -103,33 +119,32 @@ class ThreadScreen(Screen):
                     collection=lexicon.REPLY,
                     attachments=r.attachments,
                     quote_text=quote_text,
-                )
+                ),
+                before=self.query_one("#page-status-bottom"),
             )
 
-        if self._page < self._total_pages:
-            await scroll.mount(Button(f"page {self._page + 1} of {self._total_pages} →", id="next-page"))
-
-    def refresh_data(self) -> None:
-        self._do_refresh()
-
-    @work(exclusive=True)
-    async def _do_refresh(self) -> None:
-        for post in self.query(Post):
-            if post.collection == lexicon.REPLY:
-                await post.remove()
+        # Focus first reply
         try:
-            await self.query_one("#next-page", Button).remove()
+            replies = [p for p in self.query(Post) if p.collection == lexicon.REPLY]
+            if replies:
+                replies[0].focus()
         except Exception:
             pass
 
-        self._replies_map.clear()
+    def action_next_page(self) -> None:
+        if self._page < self._total_pages:
+            self._clear_replies()
+            self.load_replies(page=self._page + 1)
+
+    def action_prev_page(self) -> None:
+        if self._page > 1:
+            self._clear_replies()
+            self.load_replies(page=self._page - 1)
+
+    def refresh_data(self) -> None:
+        self._clear_replies()
         self._page = 1
         self.load_replies(page=1)
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "next-page" and self._page < self._total_pages:
-            event.button.remove()
-            self.load_replies(page=self._page + 1)
 
     def action_reply(self) -> None:
         session = require_session(self)
