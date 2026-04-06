@@ -37,7 +37,11 @@ interface ListRecordsResponse {
   cursor?: string;
 }
 
-export function parseAtUri(uri: string): { did: string; collection: string; rkey: string } {
+export function parseAtUri(uri: string): {
+  did: string;
+  collection: string;
+  rkey: string;
+} {
   const parts = uri.split("/");
   return { did: parts[2], collection: parts[3], rkey: parts[4] };
 }
@@ -77,7 +81,9 @@ export async function getRecordsBatch(
     refs.map((r) => getRecord(r.did, r.collection, r.rkey)),
   );
   return results
-    .filter((r): r is PromiseFulfilledResult<ATRecord> => r.status === "fulfilled")
+    .filter(
+      (r): r is PromiseFulfilledResult<ATRecord> => r.status === "fulfilled",
+    )
     .map((r) => r.value);
 }
 
@@ -136,7 +142,8 @@ export async function fetchAndHydrate(
     return true;
   });
 
-  if (!filtered.length) return { records: [], cursor: backlinks.cursor ?? null };
+  if (!filtered.length)
+    return { records: [], cursor: backlinks.cursor ?? null };
 
   const dids = filtered.map((r) => parseAtUri(r.uri).did);
   const authors = await resolveIdentitiesBatch(dids);

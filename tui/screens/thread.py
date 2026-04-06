@@ -22,7 +22,9 @@ class ThreadScreen(Screen):
         Binding("ctrl+s", "save_attachment", "save attachments", show=False),
     ]
 
-    def __init__(self, bbs: BBS, handle: str, thread: Thread, focus_reply: str | None = None) -> None:
+    def __init__(
+        self, bbs: BBS, handle: str, thread: Thread, focus_reply: str | None = None
+    ) -> None:
         super().__init__()
         self.bbs = bbs
         self.handle = handle
@@ -70,7 +72,9 @@ class ThreadScreen(Screen):
         self._focus_reply = None  # only use on first load
 
     def _update_page_status(self) -> None:
-        text = f"page {self._page} of {self._total_pages}" if self._total_pages > 1 else ""
+        text = (
+            f"page {self._page} of {self._total_pages}" if self._total_pages > 1 else ""
+        )
         self.query_one("#page-status-top", Static).update(text)
         self.query_one("#page-status-bottom", Static).update(text)
 

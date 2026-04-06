@@ -26,22 +26,26 @@ const SCAN_LIMIT = 50;
 function initTabs() {
   const panels = ["inbox", "bbs"];
 
-  document.querySelectorAll<HTMLElement>(".tab-btn[data-tab]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const name = btn.dataset.tab!;
+  document
+    .querySelectorAll<HTMLElement>(".tab-btn[data-tab]")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.dataset.tab!;
 
-      document.querySelectorAll(".tab-btn").forEach((b) => {
-        b.classList.remove("text-neutral-200", "border-neutral-200");
-        b.classList.add("text-neutral-500", "border-transparent");
+        document.querySelectorAll(".tab-btn").forEach((b) => {
+          b.classList.remove("text-neutral-200", "border-neutral-200");
+          b.classList.add("text-neutral-500", "border-transparent");
+        });
+        btn.classList.remove("text-neutral-500", "border-transparent");
+        btn.classList.add("text-neutral-200", "border-neutral-200");
+
+        for (const p of panels) {
+          document
+            .getElementById(`panel-${p}`)
+            ?.classList.toggle("hidden", p !== name);
+        }
       });
-      btn.classList.remove("text-neutral-500", "border-transparent");
-      btn.classList.add("text-neutral-200", "border-neutral-200");
-
-      for (const p of panels) {
-        document.getElementById(`panel-${p}`)?.classList.toggle("hidden", p !== name);
-      }
     });
-  });
 }
 
 // --- Render ---
@@ -144,11 +148,10 @@ async function loadInbox(did: string, pdsUrl: string, handle: string) {
       }),
       ...replyRecords.map(async (rr) => {
         try {
-          const { records } = await fetchAndHydrate(
-            rr.uri,
-            `${REPLY}:quote`,
-            { limit: BACKLINK_LIMIT, excludeDid: did },
-          );
+          const { records } = await fetchAndHydrate(rr.uri, `${REPLY}:quote`, {
+            limit: BACKLINK_LIMIT,
+            excludeDid: did,
+          });
           return recordsToInboxItems(
             records,
             "quote",

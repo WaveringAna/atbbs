@@ -277,7 +277,9 @@ async def api_replies(did: str, tid: str):
     )
 
     try:
-        result = await hydrate_replies(client, bbs, dummy_thread, page=page, focus_reply=focus_reply)
+        result = await hydrate_replies(
+            client, bbs, dummy_thread, page=page, focus_reply=focus_reply
+        )
     except Exception:
         return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 

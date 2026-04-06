@@ -24,12 +24,16 @@ const allReplies: Record<string, ReplyItem> = {};
 // --- Quote UI ---
 
 function quoteReply(uri: string, handle: string) {
-  const quoteUri = document.getElementById("quote-uri") as HTMLInputElement | null;
+  const quoteUri = document.getElementById(
+    "quote-uri",
+  ) as HTMLInputElement | null;
   const previewText = document.getElementById("quote-preview-text");
   if (quoteUri) quoteUri.value = uri;
   if (previewText) previewText.textContent = `quoting ${handle}`;
   document.getElementById("quote-preview")?.classList.remove("hidden");
-  (document.getElementById("reply-body") as HTMLTextAreaElement | null)?.focus();
+  (
+    document.getElementById("reply-body") as HTMLTextAreaElement | null
+  )?.focus();
 }
 
 function clearQuote() {
@@ -136,7 +140,8 @@ function buildPageNav(
     if (active) {
       btn.className = "text-neutral-200 bg-neutral-800 rounded px-3 py-1";
     } else if (page !== null) {
-      btn.className = "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 rounded px-3 py-1";
+      btn.className =
+        "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 rounded px-3 py-1";
       btn.addEventListener("click", () => goToPage(page));
     } else {
       btn.className = "text-neutral-600 px-2 py-1 cursor-default";
@@ -238,7 +243,9 @@ async function loadReplyPage(
         url.searchParams.set("page", String(p));
         history.pushState(null, "", url.toString());
         loadReplyPage(p, threadDid, threadTid, handle, userDid, sysopDid);
-        document.getElementById("replies-nav-top")?.scrollIntoView({ behavior: "smooth" });
+        document
+          .getElementById("replies-nav-top")
+          ?.scrollIntoView({ behavior: "smooth" });
       };
       updateNavs(data.page, data.total_pages, goToPage);
     }
@@ -262,19 +269,33 @@ export function initThread() {
 
   document.getElementById("quote-clear")?.addEventListener("click", clearQuote);
   document.getElementById("replies")?.addEventListener("click", (e) => {
-    const btn = (e.target as HTMLElement).closest(".quote-btn") as HTMLElement | null;
+    const btn = (e.target as HTMLElement).closest(
+      ".quote-btn",
+    ) as HTMLElement | null;
     if (btn) quoteReply(btn.dataset.uri!, btn.dataset.handle!);
   });
 
   const params = new URLSearchParams(window.location.search);
   const initialPage = parseInt(params.get("page") ?? "1", 10);
   const focusReply = params.get("reply") ?? undefined;
-  loadReplyPage(initialPage, threadDid, threadTid, handle, userDid, sysopDid, focusReply);
+  loadReplyPage(
+    initialPage,
+    threadDid,
+    threadTid,
+    handle,
+    userDid,
+    sysopDid,
+    focusReply,
+  );
 
   window.addEventListener("popstate", () => {
-    const p = parseInt(new URLSearchParams(window.location.search).get("page") ?? "1", 10);
+    const p = parseInt(
+      new URLSearchParams(window.location.search).get("page") ?? "1",
+      10,
+    );
     const container = document.getElementById("replies")!;
-    container.innerHTML = '<p id="replies-loading" class="text-neutral-500">Loading replies...</p>';
+    container.innerHTML =
+      '<p id="replies-loading" class="text-neutral-500">Loading replies...</p>';
     hideNavs();
     loadReplyPage(p, threadDid, threadTid, handle, userDid, sysopDid);
   });

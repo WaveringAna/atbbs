@@ -93,7 +93,9 @@ async def hydrate_replies(
     page_refs = all_refs[start : start + page_size]
 
     if not page_refs:
-        return RepliesPage(replies=[], page=page, total_pages=total_pages, total_replies=total)
+        return RepliesPage(
+            replies=[], page=page, total_pages=total_pages, total_replies=total
+        )
 
     # Hydrate only this page
     records = await get_records_batch(client, page_refs)
@@ -118,7 +120,9 @@ async def hydrate_replies(
         if parsed[r.uri].did in authors
     ]
     replies.sort(key=lambda t: t.created_at)
-    return RepliesPage(replies=replies, page=page, total_pages=total_pages, total_replies=total)
+    return RepliesPage(
+        replies=replies, page=page, total_pages=total_pages, total_replies=total
+    )
 
 
 async def _try_refresh_token(client, session, session_updater):

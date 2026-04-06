@@ -14,6 +14,10 @@ css:
 js:
     npx esbuild web/ts/main.ts --bundle --outfile=web/static/app.js --minify
 
+fmt:
+    uv format
+    npx prettier --write web/ts/
+
 tui:
     uv run python -m tui
 

@@ -24,3 +24,6 @@ atbbs = "cli.__main__:main"
 [tool.hatch.build.targets.wheel]
 packages = ["cli", "core", "web", "tui"]
 exclude = ["web/ts"]
+
+[dependency-groups]
+dev = []
