@@ -8,9 +8,8 @@ from core.records import (
     create_reply_record,
     create_thread_record,
     delete_record,
-    upload_blob,
 )
-from web.helpers import get_user, session_updater
+from web.helpers import get_user, session_updater, upload_attachments
 
 bp = Blueprint("write", __name__)
 
@@ -49,26 +48,7 @@ async def create_thread(handle: str, slug: str):
 
     board_uri = str(AtUri(bbs.identity.did, lexicon.BOARD, slug))
 
-    # Handle file attachments
-    attachments = []
-    files = (await request.files).getlist("attachments")
-    for f in files:
-        if f.filename:
-            data = f.read()
-            try:
-                blob_ref = await upload_blob(
-                    client,
-                    user,
-                    data,
-                    f.content_type or "application/octet-stream",
-                    session_updater,
-                )
-                attachments.append({"file": blob_ref, "name": f.filename})
-            except Exception:
-                return await render_template(
-                    "error.html",
-                    message=f"Failed to upload {f.filename}.",
-                ), 400
+    attachments = await upload_attachments(client, user)
 
     resp = await create_thread_record(
         current_app.http_client,
@@ -98,30 +78,11 @@ async def create_reply(handle: str, did: str, tid: str):
 
     thread_uri = str(AtUri(did, lexicon.THREAD, tid))
 
-    # Handle file attachments
     client = current_app.http_client
-    attachments = []
-    files = (await request.files).getlist("attachments")
-    for f in files:
-        if f.filename:
-            data = f.read()
-            try:
-                blob_ref = await upload_blob(
-                    client,
-                    user,
-                    data,
-                    f.content_type or "application/octet-stream",
-                    session_updater,
-                )
-                attachments.append({"file": blob_ref, "name": f.filename})
-            except Exception:
-                return await render_template(
-                    "error.html",
-                    message=f"Failed to upload {f.filename}.",
-                ), 400
+    attachments = await upload_attachments(client, user)
 
     resp = await create_reply_record(
-        current_app.http_client,
+        client,
         user,
         thread_uri,
         body,
