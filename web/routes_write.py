@@ -4,7 +4,12 @@ from quart import Blueprint, current_app, redirect, request
 
 from core import lexicon
 from core.models import AtUri, AuthError
-from core.records import create_reply_record, create_thread_record, delete_record, upload_blob
+from core.records import (
+    create_reply_record,
+    create_thread_record,
+    delete_record,
+    upload_blob,
+)
 from web.helpers import get_user, session_updater
 
 bp = Blueprint("write", __name__)

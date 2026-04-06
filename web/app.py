@@ -35,7 +35,7 @@ def create_app(
 
     @app.before_serving
     async def startup():
-        app.http_client = httpx.AsyncClient()
+        app.http_client = httpx.AsyncClient(timeout=10)
 
     @app.after_serving
     async def shutdown():
@@ -55,8 +55,8 @@ def create_app(
     # Register blueprints
     from web.routes import bp as main_bp
     from web.routes_auth import bp as auth_bp
-    from web.routes_write import bp as write_bp
     from web.routes_sysop import bp as sysop_bp
+    from web.routes_write import bp as write_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)

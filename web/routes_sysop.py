@@ -21,7 +21,6 @@ async def handle_auth_error(e):
     return redirect("/login")
 
 
-
 async def _has_bbs(user: dict) -> bool:
     """Check if the user has a site record."""
     client = current_app.http_client
@@ -83,8 +82,8 @@ async def delete_bbs():
     for slug in board_slugs:
         try:
             await delete_record(
-                    current_app.http_client, user, lexicon.BOARD, slug, session_updater
-                )
+                current_app.http_client, user, lexicon.BOARD, slug, session_updater
+            )
         except Exception:
             failed.append(f"board/{slug}")
 

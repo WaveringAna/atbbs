@@ -68,7 +68,7 @@ class AtbbsApp(App):
         self._dial = dial
 
     def on_mount(self) -> None:
-        self.http_client = httpx.AsyncClient()
+        self.http_client = httpx.AsyncClient(timeout=10)
         os.makedirs(DATA_DIR, exist_ok=True)
         db_path = os.path.join(DATA_DIR, "atbbs.db")
         self.session_store = SessionStore(db_path)
