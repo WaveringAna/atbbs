@@ -96,7 +96,9 @@ async def delete_bbs():
         failed.append("news lookup")
 
     if failed:
-        return await error(f"Could not delete: {', '.join(failed)}. Site record was not deleted.")
+        return await error(
+            f"Could not delete: {', '.join(failed)}. Site record was not deleted."
+        )
 
     # Delete site record
     try:

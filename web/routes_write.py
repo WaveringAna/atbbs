@@ -60,7 +60,9 @@ async def create_thread(handle: str, slug: str):
     try:
         bbs = await resolve_bbs(client, handle)
     except Exception:
-        return await render_template("error.html", message="Could not reach this BBS."), 503
+        return await render_template(
+            "error.html", message="Could not reach this BBS."
+        ), 503
 
     if bbs.site.is_banned(user["did"]):
         return redirect(f"/bbs/{handle}/board/{slug}")

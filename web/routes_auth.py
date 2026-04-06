@@ -96,17 +96,23 @@ async def login():
     try:
         identity = await resolve_identity(client, handle)
     except Exception:
-        return await render_template("login.html", error="Could not resolve that handle.")
+        return await render_template(
+            "login.html", error="Could not resolve that handle."
+        )
     pds_url = identity.pds
     if not pds_url:
-        return await render_template("login.html", error="Could not resolve that handle.")
+        return await render_template(
+            "login.html", error="Could not resolve that handle."
+        )
 
     # Discover auth server
     try:
         authserver_url = await resolve_pds_authserver(client, pds_url)
         authserver_meta = await fetch_authserver_meta(client, authserver_url)
     except Exception:
-        return await render_template("login.html", error="Could not reach your PDS. Try again.")
+        return await render_template(
+            "login.html", error="Could not reach your PDS. Try again."
+        )
 
     # Generate DPoP keypair for this login attempt
     dpop_key = JsonWebKey.generate_key("EC", "P-256", is_private=True)
