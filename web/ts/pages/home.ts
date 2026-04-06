@@ -18,6 +18,29 @@ export function initHome() {
   });
 
   loadDiscover();
+  initInstallTabs();
+}
+
+function initInstallTabs() {
+  document
+    .querySelectorAll<HTMLElement>(".install-tab[data-install]")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.dataset.install!;
+
+        document.querySelectorAll(".install-tab").forEach((b) => {
+          b.classList.remove("text-neutral-200", "border-neutral-200");
+          b.classList.add("text-neutral-500", "border-transparent");
+        });
+        btn.classList.remove("text-neutral-500", "border-transparent");
+        btn.classList.add("text-neutral-200", "border-neutral-200");
+
+        document
+          .querySelectorAll(".install-panel")
+          .forEach((p) => p.classList.add("hidden"));
+        document.getElementById(`install-${name}`)?.classList.remove("hidden");
+      });
+    });
 }
 
 async function loadDiscover() {

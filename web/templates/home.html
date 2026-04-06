@@ -32,9 +32,14 @@
     <!-- Install -->
     <div class="border-t border-neutral-800 py-8">
         <h2 class="text-neutral-300 mb-4">Better yet, use your terminal</h2>
-        <pre class="bg-neutral-900 border border-neutral-800 rounded px-4 py-3 text-neutral-400 text-xs mb-3"><span class="text-neutral-500">$</span> pip install atbbs
+        <div class="flex gap-4 border-b border-neutral-800 mb-4">
+            <button data-install="brew" class="install-tab py-2 text-neutral-200 border-b-2 border-neutral-200">brew</button>
+            <button data-install="pip" class="install-tab py-2 text-neutral-500 hover:text-neutral-300 border-b-2 border-transparent">pip</button>
+        </div>
+        <pre id="install-brew" class="install-panel bg-neutral-900 border border-neutral-800 rounded px-4 py-3 text-neutral-400 text-xs"><span class="text-neutral-500">$</span> brew install alyraffauf/tap/atbbs
 <span class="text-neutral-500">$</span> atbbs</pre>
-        <p class="text-neutral-500 text-xs">Requires Python 3.14+.</p>
+        <pre id="install-pip" class="install-panel bg-neutral-900 border border-neutral-800 rounded px-4 py-3 text-neutral-400 text-xs hidden"><span class="text-neutral-500">$</span> pip install atbbs
+<span class="text-neutral-500">$</span> atbbs</pre>
     </div>
 </div>
 
