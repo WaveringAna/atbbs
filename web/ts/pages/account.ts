@@ -6,7 +6,7 @@ import {
   parseAtUri,
   type HydratedRecord,
 } from "../lib/atproto";
-import { THREAD, REPLY, BACKLINK_LIMIT } from "../lib/lexicon";
+import { THREAD, REPLY } from "../lib/lexicon";
 
 interface InboxItem {
   type: string;
@@ -133,7 +133,7 @@ async function loadInbox(did: string, pdsUrl: string, handle: string) {
           const { records } = await fetchAndHydrate(
             tr.uri,
             `${REPLY}:subject`,
-            { limit: BACKLINK_LIMIT, excludeDid: did },
+            { limit: 50, excludeDid: did },
           );
           return recordsToInboxItems(
             records,
@@ -149,7 +149,7 @@ async function loadInbox(did: string, pdsUrl: string, handle: string) {
       ...replyRecords.map(async (rr) => {
         try {
           const { records } = await fetchAndHydrate(rr.uri, `${REPLY}:quote`, {
-            limit: BACKLINK_LIMIT,
+            limit: 50,
             excludeDid: did,
           });
           return recordsToInboxItems(
