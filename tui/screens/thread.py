@@ -91,7 +91,7 @@ class ThreadScreen(Screen):
             result = await fetch_replies(
                 client,
                 self.bbs,
-                self.thread,
+                self.thread.uri,
                 page=page,
                 focus_reply=focus_reply,
             )

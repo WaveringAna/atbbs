@@ -10,9 +10,37 @@ import httpx
 from core import lexicon
 from core.constellation import get_replies, get_threads
 from core.filters import filter_moderated
-from core.models import AtUri, AuthError, BBS, Board, Reply, Thread
+from core.models import AtUri, AuthError, BBS, Board, MiniDoc, Record, Reply, Thread
 from core.slingshot import get_records_batch, resolve_identities_batch
 from core.util import now_iso
+
+
+def thread_from_record(record: Record, author: MiniDoc) -> Thread:
+    """Construct a Thread from a raw Record and resolved author."""
+    return Thread(
+        uri=record.uri,
+        board_uri=record.value["board"],
+        title=record.value["title"],
+        body=record.value["body"],
+        created_at=record.value["createdAt"],
+        author=author,
+        updated_at=record.value.get("updatedAt"),
+        attachments=record.value.get("attachments"),
+    )
+
+
+def reply_from_record(record: Record, author: MiniDoc) -> Reply:
+    """Construct a Reply from a raw Record and resolved author."""
+    return Reply(
+        uri=record.uri,
+        subject_uri=record.value["subject"],
+        body=record.value["body"],
+        created_at=record.value["createdAt"],
+        author=author,
+        updated_at=record.value.get("updatedAt"),
+        attachments=record.value.get("attachments"),
+        quote=record.value.get("quote"),
+    )
 
 
 async def hydrate_threads(
@@ -32,16 +60,7 @@ async def hydrate_threads(
     authors = await resolve_identities_batch(client, dids)
 
     threads = [
-        Thread(
-            uri=r.uri,
-            board_uri=r.value["board"],
-            title=r.value["title"],
-            body=r.value["body"],
-            created_at=r.value["createdAt"],
-            author=authors[parsed[r.uri].did],
-            updated_at=r.value.get("updatedAt"),
-            attachments=r.value.get("attachments"),
-        )
+        thread_from_record(r, authors[parsed[r.uri].did])
         for r in records
         if parsed[r.uri].did in authors
     ]
@@ -62,7 +81,7 @@ class RepliesPage:
 async def hydrate_replies(
     client: httpx.AsyncClient,
     bbs: BBS,
-    thread: Thread,
+    thread_uri: str,
     page: int = 1,
     page_size: int = 10,
     focus_reply: str | None = None,
@@ -73,7 +92,7 @@ async def hydrate_replies(
     containing that reply.
     """
     # Fetch all refs (cheap — just did/collection/rkey)
-    backlinks = await get_replies(client, thread.uri, limit=1000)
+    backlinks = await get_replies(client, thread_uri, limit=1000)
     all_refs = list(reversed(backlinks.records))  # oldest first
 
     total = len(all_refs)
@@ -106,16 +125,7 @@ async def hydrate_replies(
     authors = await resolve_identities_batch(client, dids)
 
     replies = [
-        Reply(
-            uri=r.uri,
-            subject_uri=r.value["subject"],
-            body=r.value["body"],
-            created_at=r.value["createdAt"],
-            author=authors[parsed[r.uri].did],
-            updated_at=r.value.get("updatedAt"),
-            attachments=r.value.get("attachments"),
-            quote=r.value.get("quote"),
-        )
+        reply_from_record(r, authors[parsed[r.uri].did])
         for r in records
         if parsed[r.uri].did in authors
     ]
@@ -350,6 +360,84 @@ async def delete_record(
     )
     resp.raise_for_status()
     return resp
+
+
+async def put_board_record(
+    client: httpx.AsyncClient,
+    session: dict,
+    slug: str,
+    name: str,
+    description: str,
+    created_at: str,
+    session_updater=None,
+) -> httpx.Response:
+    """Create or update a board record in the user's repo."""
+    return await pds_post(
+        client,
+        session,
+        "com.atproto.repo.putRecord",
+        {
+            "repo": session["did"],
+            "collection": lexicon.BOARD,
+            "rkey": slug,
+            "record": {
+                "$type": lexicon.BOARD,
+                "name": name,
+                "description": description,
+                "createdAt": created_at,
+            },
+        },
+        session_updater,
+    )
+
+
+async def put_site_record(
+    client: httpx.AsyncClient,
+    session: dict,
+    site_value: dict,
+    session_updater=None,
+) -> httpx.Response:
+    """Create or update the site record in the user's repo."""
+    return await pds_post(
+        client,
+        session,
+        "com.atproto.repo.putRecord",
+        {
+            "repo": session["did"],
+            "collection": lexicon.SITE,
+            "rkey": "self",
+            "record": site_value,
+        },
+        session_updater,
+    )
+
+
+async def create_news_record(
+    client: httpx.AsyncClient,
+    session: dict,
+    site_uri: str,
+    title: str,
+    body: str,
+    session_updater=None,
+) -> httpx.Response:
+    """Create a news record in the user's repo."""
+    return await pds_post(
+        client,
+        session,
+        "com.atproto.repo.createRecord",
+        {
+            "repo": session["did"],
+            "collection": lexicon.NEWS,
+            "record": {
+                "$type": lexicon.NEWS,
+                "site": site_uri,
+                "title": title,
+                "body": body,
+                "createdAt": now_iso(),
+            },
+        },
+        session_updater,
+    )
 
 
 async def fetch_inbox(

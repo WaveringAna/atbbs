@@ -4,7 +4,12 @@ from quart import Blueprint, current_app, redirect, render_template, request
 
 from core import lexicon
 from core.models import AtUri, AuthError
-from core.records import pds_post, delete_record
+from core.records import (
+    create_news_record,
+    delete_record,
+    put_board_record,
+    put_site_record,
+)
 from core.util import now_iso
 from web.helpers import get_user, session_updater
 
@@ -15,12 +20,6 @@ bp = Blueprint("sysop", __name__)
 async def handle_auth_error(e):
     return redirect("/login")
 
-
-async def _authed_pds_post(user: dict, endpoint: str, body: dict):
-    """Make an authenticated POST to the user's PDS."""
-    return await pds_post(
-        current_app.http_client, user, endpoint, body, session_updater
-    )
 
 
 async def _has_bbs(user: dict) -> bool:
@@ -150,46 +149,32 @@ async def create_bbs():
 
     now = now_iso()
 
+    client = current_app.http_client
+
     try:
         # Create board records
         for i, slug in enumerate(board_slugs):
             board_name = board_names[i] if i < len(board_names) else slug
             board_desc = board_descs[i].strip() if i < len(board_descs) else ""
-            await _authed_pds_post(
-                user,
-                "com.atproto.repo.putRecord",
-                {
-                    "repo": user["did"],
-                    "collection": lexicon.BOARD,
-                    "rkey": slug,
-                    "record": {
-                        "$type": lexicon.BOARD,
-                        "name": board_name,
-                        "description": board_desc,
-                        "createdAt": now,
-                    },
-                },
+            await put_board_record(
+                client, user, slug, board_name, board_desc, now, session_updater
             )
 
         # Create site record
-        await _authed_pds_post(
+        await put_site_record(
+            client,
             user,
-            "com.atproto.repo.putRecord",
             {
-                "repo": user["did"],
-                "collection": lexicon.SITE,
-                "rkey": "self",
-                "record": {
-                    "$type": lexicon.SITE,
-                    "name": name,
-                    "description": description,
-                    "intro": intro,
-                    "boards": board_slugs,
-                    "bannedDids": [],
-                    "hiddenPosts": [],
-                    "createdAt": now,
-                },
+                "$type": lexicon.SITE,
+                "name": name,
+                "description": description,
+                "intro": intro,
+                "boards": board_slugs,
+                "bannedDids": [],
+                "hiddenPosts": [],
+                "createdAt": now,
             },
+            session_updater,
         )
     except Exception:
         return await error("Could not create BBS.")
@@ -284,16 +269,7 @@ async def moderate_bbs():
     site_value["updatedAt"] = now_iso()
 
     try:
-        await _authed_pds_post(
-            user,
-            "com.atproto.repo.putRecord",
-            {
-                "repo": user["did"],
-                "collection": lexicon.SITE,
-                "rkey": "self",
-                "record": site_value,
-            },
-        )
+        await put_site_record(client, user, site_value, session_updater)
     except Exception:
         return await error("Could not save moderation changes.")
 
@@ -348,42 +324,26 @@ async def edit_bbs():
         for i, slug in enumerate(board_slugs):
             board_name = board_names[i] if i < len(board_names) else slug
             board_desc = board_descs[i].strip() if i < len(board_descs) else ""
-            await _authed_pds_post(
-                user,
-                "com.atproto.repo.putRecord",
-                {
-                    "repo": user["did"],
-                    "collection": lexicon.BOARD,
-                    "rkey": slug,
-                    "record": {
-                        "$type": lexicon.BOARD,
-                        "name": board_name,
-                        "description": board_desc,
-                        "createdAt": now,
-                    },
-                },
+            await put_board_record(
+                client, user, slug, board_name, board_desc, now, session_updater
             )
 
         # Update site record
-        await _authed_pds_post(
+        await put_site_record(
+            client,
             user,
-            "com.atproto.repo.putRecord",
             {
-                "repo": user["did"],
-                "collection": lexicon.SITE,
-                "rkey": "self",
-                "record": {
-                    "$type": lexicon.SITE,
-                    "name": name,
-                    "description": description,
-                    "intro": intro,
-                    "boards": board_slugs,
-                    "bannedDids": existing_banned,
-                    "hiddenPosts": existing_hidden,
-                    "createdAt": created_at,
-                    "updatedAt": now,
-                },
+                "$type": lexicon.SITE,
+                "name": name,
+                "description": description,
+                "intro": intro,
+                "boards": board_slugs,
+                "bannedDids": existing_banned,
+                "hiddenPosts": existing_hidden,
+                "createdAt": created_at,
+                "updatedAt": now,
             },
+            session_updater,
         )
     except Exception:
         return await error("Could not update BBS.")
@@ -404,23 +364,10 @@ async def create_news(handle: str):
         return redirect(f"/bbs/{handle}")
 
     site_uri = str(AtUri(user["did"], lexicon.SITE, "self"))
-    now = now_iso()
 
     try:
-        await _authed_pds_post(
-            user,
-            "com.atproto.repo.createRecord",
-            {
-                "repo": user["did"],
-                "collection": lexicon.NEWS,
-                "record": {
-                    "$type": lexicon.NEWS,
-                    "site": site_uri,
-                    "title": title,
-                    "body": body,
-                    "createdAt": now,
-                },
-            },
+        await create_news_record(
+            current_app.http_client, user, site_uri, title, body, session_updater
         )
     except Exception:
         return await error("Could not post news.")
@@ -470,16 +417,7 @@ async def ban_user(handle: str, did_to_ban: str):
     site_value["bannedDids"] = banned
     site_value["updatedAt"] = now_iso()
     try:
-        await _authed_pds_post(
-            user,
-            "com.atproto.repo.putRecord",
-            {
-                "repo": user["did"],
-                "collection": lexicon.SITE,
-                "rkey": "self",
-                "record": site_value,
-            },
-        )
+        await put_site_record(client, user, site_value, session_updater)
     except Exception:
         return await error("Could not ban user.")
 
@@ -514,16 +452,7 @@ async def hide_post(handle: str):
     site_value["hiddenPosts"] = hidden
     site_value["updatedAt"] = now_iso()
     try:
-        await _authed_pds_post(
-            user,
-            "com.atproto.repo.putRecord",
-            {
-                "repo": user["did"],
-                "collection": lexicon.SITE,
-                "rkey": "self",
-                "record": site_value,
-            },
-        )
+        await put_site_record(client, user, site_value, session_updater)
     except Exception:
         return await error("Could not hide post.")
 

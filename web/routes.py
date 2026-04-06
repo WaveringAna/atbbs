@@ -8,10 +8,9 @@ from core.models import (
     BBSNotFoundError,
     NetworkError,
     NoBBSError,
-    Thread,
 )
 from core import lexicon
-from core.records import hydrate_replies, hydrate_threads
+from core.records import hydrate_replies, hydrate_threads, thread_from_record
 from core.resolver import resolve_bbs
 from core.slingshot import get_record, resolve_identity, resolve_identities_batch
 
@@ -217,16 +216,7 @@ async def thread(handle: str, did: str, tid: str):
     except httpx.TransportError:
         return await error("Could not reach the network. Try again.", 502)
 
-    thread_obj = Thread(
-        uri=thread_record.uri,
-        board_uri=thread_record.value["board"],
-        title=thread_record.value["title"],
-        body=thread_record.value["body"],
-        created_at=thread_record.value["createdAt"],
-        author=thread_author,
-        updated_at=thread_record.value.get("updatedAt"),
-        attachments=thread_record.value.get("attachments"),
-    )
+    thread_obj = thread_from_record(thread_record, thread_author)
 
     board_slug = AtUri.parse(thread_obj.board_uri).rkey
     current_board = next((b for b in bbs.site.boards if b.slug == board_slug), None)
@@ -263,22 +253,11 @@ async def api_replies(did: str, tid: str):
     if not bbs:
         return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
 
-    # Build a minimal Thread object for hydrate_replies
     thread_uri = str(AtUri(did, lexicon.THREAD, tid))
-    from core.models import MiniDoc
-
-    dummy_thread = Thread(
-        uri=thread_uri,
-        board_uri="",
-        title="",
-        body="",
-        created_at="",
-        author=MiniDoc(did=did, handle=""),
-    )
 
     try:
         result = await hydrate_replies(
-            client, bbs, dummy_thread, page=page, focus_reply=focus_reply
+            client, bbs, thread_uri, page=page, focus_reply=focus_reply
         )
     except Exception:
         return {"replies": [], "page": 1, "total_pages": 1, "total_replies": 0}
