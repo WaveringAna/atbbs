@@ -215,7 +215,8 @@ export function initThread() {
 
   // Shared page loader that tracks last-loaded state
   let lastPage = 1;
-  let lastTotalPages = 1;
+  let lastTotalReplies = 0;
+  const PAGE_SIZE = 10;
 
   const goToPage = (p: number) => {
     const container = document.getElementById("replies")!;
@@ -241,7 +242,7 @@ export function initThread() {
       const data = await fetchJson<RepliesResponse>(url);
 
       lastPage = data.page;
-      lastTotalPages = data.total_pages;
+      lastTotalReplies = data.total_replies;
 
       if (loading) loading.remove();
 
@@ -346,12 +347,17 @@ export function initThread() {
         };
         allReplies[result.uri] = optimistic;
 
-        // If not on the last page, navigate there first
-        if (lastPage !== lastTotalPages) {
+        // Navigate to the last page (accounting for the new reply)
+        const newTotal = lastTotalReplies + 1;
+        const newLastPage = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
+        if (lastPage !== newLastPage) {
           const container = document.getElementById("replies")!;
           container.innerHTML = "";
           hideNavs();
-          await loadPage(lastTotalPages);
+          const url = new URL(window.location.href);
+          url.searchParams.set("page", String(newLastPage));
+          history.pushState(null, "", url.toString());
+          await loadPage(newLastPage);
         }
 
         // Append if not already rendered by loadPage
