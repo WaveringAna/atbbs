@@ -19,17 +19,13 @@ class ActivityScreen(Screen):
 
     def compose(self) -> ComposeResult:
         from tui.widgets.breadcrumb import Breadcrumb
-
         yield Breadcrumb(
             ("@bbs", 1),
-            ("messages", 0),
+            ("inbox", 0),
         )
         with VerticalScroll(id="activity-scroll"):
-            yield Static("Messages", classes="title")
-            yield Static(
-                "Replies to your threads and quotes of your replies.",
-                classes="subtitle",
-            )
+            yield Static("Inbox", classes="title")
+            yield Static("Replies to your threads and quotes of your replies.", classes="subtitle")
             yield Static("Loading...", id="activity-loading")
         yield Footer()
 
@@ -43,9 +39,7 @@ class ActivityScreen(Screen):
             self.query_one("#activity-loading").remove()
         except Exception:
             pass
-        self.query_one("#activity-scroll").mount(
-            Static("Loading...", id="activity-loading")
-        )
+        self.query_one("#activity-scroll").mount(Static("Loading...", id="activity-loading"))
         self.load_inbox()
 
     def action_open_thread(self) -> None:
@@ -64,19 +58,18 @@ class ActivityScreen(Screen):
     @work(exclusive=True)
     async def _navigate(self, item: dict) -> None:
         from core.resolver import resolve_bbs
-        from core import lexicon
         from core.slingshot import get_record, resolve_identity
-        from core.models import AtUri, Thread
+        from core.models import Thread
 
-        thread = AtUri.parse(item["thread_uri"])
-        thread_did = thread.did
-        thread_tid = thread.rkey
+        parts = item["thread_uri"].split("/")
+        thread_did = parts[2]
+        thread_tid = parts[-1]
         handle = item.get("bbs_handle") or self.app.user_session.get("handle", "")
 
         client = self.app.http_client
         try:
             bbs = await resolve_bbs(client, handle)
-            rec = await get_record(client, thread_did, lexicon.THREAD, thread_tid)
+            rec = await get_record(client, thread_did, "xyz.atboards.thread", thread_tid)
             author = await resolve_identity(client, thread_did)
             thread = Thread(
                 uri=rec.uri,
@@ -89,11 +82,7 @@ class ActivityScreen(Screen):
                 attachments=rec.value.get("attachments"),
             )
             from tui.screens.thread import ThreadScreen
-
-            focus_reply = item.get("reply_uri")
-            self.app.push_screen(
-                ThreadScreen(bbs, handle, thread, focus_reply=focus_reply)
-            )
+            self.app.push_screen(ThreadScreen(bbs, handle, thread))
         except Exception:
             self.notify("Could not open thread.", severity="error")
 
@@ -102,21 +91,18 @@ class ActivityScreen(Screen):
         session = self.app.user_session
         if not session:
             try:
-                self.query_one("#activity-loading").update(
-                    "Log in to see your messages."
-                )
+                self.query_one("#activity-loading").update("Log in to see your inbox.")
             except Exception:
                 pass
             return
 
         from core.records import fetch_inbox
-
         client = self.app.http_client
 
         try:
             self._items = await fetch_inbox(client, session["did"], session["pds_url"])
         except Exception:
-            self.notify("Failed to fetch messages.", severity="error")
+            self.notify("Failed to load inbox.", severity="error")
             return
 
         try:
@@ -134,15 +120,10 @@ class ActivityScreen(Screen):
             if a["type"] == "reply":
                 title = f"on: {title}"
             await scroll.mount(
-                Post(
-                    author=a["handle"],
-                    date=a["created_at"],
-                    title=title,
-                    body=a["body"],
-                )
+                Post(author=a["handle"], date=a["created_at"], title=title, body=a["body"])
             )
 
-        # Focus first post
+        # select first post
         try:
             self.query(Post).first().focus()
         except Exception:

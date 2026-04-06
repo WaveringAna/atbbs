@@ -99,9 +99,13 @@ function deduplicateItems(items: InboxItem[]): InboxItem[] {
   );
 }
 
+const PAGE_SIZE = 10;
+
 async function loadInbox(did: string, pdsUrl: string, handle: string) {
   const container = document.getElementById("inbox")!;
   const loading = document.getElementById("inbox-loading");
+  const nextWrap = document.getElementById("inbox-next")!;
+  const loadMoreBtn = document.getElementById("load-more")!;
 
   try {
     const [threadRecords, replyRecords] = await Promise.all([
@@ -174,9 +178,19 @@ async function loadInbox(did: string, pdsUrl: string, handle: string) {
       return;
     }
 
-    for (const item of items.slice(0, 50)) {
-      container.appendChild(renderItem(item, handle));
+    let offset = 0;
+
+    function renderPage() {
+      const page = items.slice(offset, offset + PAGE_SIZE);
+      for (const item of page) {
+        container.appendChild(renderItem(item, handle));
+      }
+      offset += page.length;
+      nextWrap.classList.toggle("hidden", offset >= items.length);
     }
+
+    renderPage();
+    loadMoreBtn.addEventListener("click", renderPage);
   } catch {
     if (loading) loading.textContent = "Failed to fetch messages.";
   }
