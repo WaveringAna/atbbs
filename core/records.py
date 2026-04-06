@@ -173,7 +173,7 @@ async def _try_refresh_token(client, session, session_updater):
         return False
 
 
-async def _pds_post(
+async def pds_post(
     client: httpx.AsyncClient,
     session: dict,
     endpoint: str,
@@ -283,7 +283,7 @@ async def create_thread_record(
     }
     if attachments:
         record["attachments"] = attachments
-    return await _pds_post(
+    return await pds_post(
         client,
         session,
         "com.atproto.repo.createRecord",
@@ -316,7 +316,7 @@ async def create_reply_record(
         record["attachments"] = attachments
     if quote:
         record["quote"] = quote
-    return await _pds_post(
+    return await pds_post(
         client,
         session,
         "com.atproto.repo.createRecord",
@@ -337,7 +337,7 @@ async def delete_record(
     session_updater=None,
 ) -> httpx.Response:
     """Delete a record from the user's repo."""
-    resp = await _pds_post(
+    resp = await pds_post(
         client,
         session,
         "com.atproto.repo.deleteRecord",

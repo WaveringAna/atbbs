@@ -4,7 +4,7 @@ from quart import Blueprint, current_app, redirect, render_template, request
 
 from core import lexicon
 from core.models import AtUri, AuthError
-from core.records import _pds_post, delete_record
+from core.records import pds_post, delete_record
 from core.util import now_iso
 from web.helpers import get_user, session_updater
 
@@ -18,7 +18,7 @@ async def handle_auth_error(e):
 
 async def _authed_pds_post(user: dict, endpoint: str, body: dict):
     """Make an authenticated POST to the user's PDS."""
-    return await _pds_post(
+    return await pds_post(
         current_app.http_client, user, endpoint, body, session_updater
     )
 
