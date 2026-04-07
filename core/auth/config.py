@@ -30,5 +30,6 @@ def load_secrets(data_dir: str = ".") -> dict:
         "secret_key": _generate_secret_key(),
         "client_secret_jwk": _generate_client_jwk(),
     }
+    secrets_path.touch(mode=0o600, exist_ok=True)
     secrets_path.write_text(json.dumps(secrets, indent=2))
     return secrets
