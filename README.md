@@ -20,30 +20,34 @@
 - **Moderation**: Ban users, hide posts, manage your boards.
 - **Discovery**: Browse BBSes from across the network.
 
-## Quick start
+## Install
 
-### TUI (recommended)
+Requires Python 3.14+.
 
-Requires Python 3.14+ and [uv](https://docs.astral.sh/uv/).
+### uv
 
 ```bash
 uv tool install atbbs
+```
+
+### Homebrew
+
+```bash
+brew install alyraffauf/tap/atbbs
+```
+
+## Usage
+
+```bash
 atbbs                  # launch TUI
 atbbs dial aly.codes   # dial a BBS directly
 atbbs serve            # start the web server
 atbbs --help           # see all options
 ```
 
-Or from source:
+## Web app
 
-```bash
-git clone https://github.com/alyraffauf/atbbs.git
-cd atbbs
-uv sync
-uv run atbbs
-```
-
-### Web app (Docker)
+### Docker
 
 ```bash
 docker run -d -p 8000:8000 -v atbbs-data:/data -e PUBLIC_URL=https://your-domain.com ghcr.io/alyraffauf/atbbs:latest
@@ -59,13 +63,18 @@ docker compose up -d
 
 Visit `http://localhost:8000`.
 
-### Web app (from source)
+### From source
+
+Requires [Node.js](https://nodejs.org/) and [just](https://just.systems/).
 
 ```bash
 git clone https://github.com/alyraffauf/atbbs.git
 cd atbbs
+npm install
 uv sync
-just dev
+just dev     # run dev server with hot reload
+just fmt     # format code
+just build   # build docker image
 ```
 
 ## Architecture
@@ -73,6 +82,7 @@ just dev
 atbbs has no backend database for content. All BBS data lives in atproto repos:
 
 - **Sysop records**: `xyz.atboards.site`, `xyz.atboards.board`, `xyz.atboards.news`
+- **Moderation records**: `xyz.atboards.ban`, `xyz.atboards.hide`
 - **User records**: `xyz.atboards.thread`, `xyz.atboards.reply`
 
 The web app and TUI query existing network infrastructure:
