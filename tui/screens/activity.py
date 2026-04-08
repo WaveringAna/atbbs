@@ -39,10 +39,8 @@ class ActivityScreen(Screen):
     def refresh_data(self) -> None:
         for child in list(self.query(Post)):
             child.remove()
-        try:
-            self.query_one("#activity-loading").remove()
-        except Exception:
-            pass
+        for w in self.query("#activity-loading"):
+            w.remove()
         self.query_one("#activity-scroll").mount(
             Static("Loading...", id="activity-loading")
         )
@@ -97,10 +95,8 @@ class ActivityScreen(Screen):
     async def load_inbox(self) -> None:
         session = self.app.user_session
         if not session:
-            try:
-                self.query_one("#activity-loading").update("Log in to see your inbox.")
-            except Exception:
-                pass
+            for w in self.query("#activity-loading"):
+                w.update("Log in to see your inbox.")
             return
 
         from core.records import fetch_inbox
@@ -113,10 +109,8 @@ class ActivityScreen(Screen):
             self.notify("Failed to load inbox.", severity="error")
             return
 
-        try:
-            self.query_one("#activity-loading").remove()
-        except Exception:
-            pass
+        for w in self.query("#activity-loading"):
+            w.remove()
 
         scroll = self.query_one("#activity-scroll")
         if not self._items:
@@ -137,7 +131,6 @@ class ActivityScreen(Screen):
             )
 
         # select first post
-        try:
-            self.query(Post).first().focus()
-        except Exception:
-            pass
+        posts = list(self.query(Post))
+        if posts:
+            posts[0].focus()

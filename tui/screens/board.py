@@ -79,10 +79,8 @@ class BoardScreen(Screen):
             lv.index = 0
 
         # Remove old next page button if present
-        try:
-            await self.query_one("#next-page", Button).remove()
-        except Exception:
-            pass
+        for btn in self.query("#next-page"):
+            await btn.remove()
 
         if next_cursor:
             if self.page + 1 >= len(self.cursor_history):

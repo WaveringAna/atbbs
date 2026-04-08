@@ -160,10 +160,8 @@ class ComposeReplyScreen(Screen):
             return
         if self.quote:
             self.quote = None
-            try:
-                self.query_one("#quote-info").remove()
-            except Exception:
-                pass
+            for w in self.query("#quote-info"):
+                w.remove()
         else:
             self.quote = self._original_quote
             body_preview = self.quote.body[:60] + (

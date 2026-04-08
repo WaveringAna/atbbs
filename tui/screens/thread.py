@@ -64,10 +64,9 @@ class ThreadScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        try:
-            self.query(Post).first().focus()
-        except Exception:
-            pass
+        posts = list(self.query(Post))
+        if posts:
+            posts[0].focus()
         self.load_replies(focus_reply=self._focus_reply)
         self._focus_reply = None  # only use on first load
 
@@ -131,12 +130,9 @@ class ThreadScreen(Screen):
             )
 
         # Focus first reply
-        try:
-            replies = [p for p in self.query(Post) if p.collection == lexicon.REPLY]
-            if replies:
-                replies[0].focus()
-        except Exception:
-            pass
+        replies = [p for p in self.query(Post) if p.collection == lexicon.REPLY]
+        if replies:
+            replies[0].focus()
 
     def action_next_page(self) -> None:
         if self._page < self._total_pages:
