@@ -6,8 +6,9 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static
 
 from core import lexicon
-from core.models import AtUri, AuthError, BBS, Thread
-from core.records import delete_record, hydrate_replies as fetch_replies
+from core.models import BBS, AtUri, AuthError, Thread
+from core.records import create_ban_record, create_hidden_record, delete_record
+from core.records import hydrate_replies as fetch_replies
 from tui.screens.compose import ComposeReplyScreen
 from tui.util import require_session
 from tui.widgets.breadcrumb import Breadcrumb
@@ -22,6 +23,8 @@ class ThreadScreen(Screen):
         Binding("[", "prev_page", "prev page"),
         Binding("]", "next_page", "next page"),
         Binding("ctrl+s", "save_attachment", "save attachments", show=False),
+        Binding("ctrl+h", "hide", "hide post", show=False),
+        Binding("ctrl+b", "ban", "ban user", show=False),
     ]
 
     def __init__(self, bbs: BBS, handle: str, thread: Thread) -> None:
@@ -128,6 +131,60 @@ class ThreadScreen(Screen):
         replies = [p for p in self.query(Post) if p.collection == lexicon.REPLY]
         if replies:
             replies[0].focus()
+
+    def action_ban(self) -> None:
+        session = self.app.user_session
+        if not session or session["did"] != self.bbs.identity.did:
+            self.notify("User not authorized.", severity="error")
+            return
+        focused = self.focused
+        if not isinstance(focused, Post) or not focused.author_did:
+            return
+        if focused.author_did == session["did"]:
+            self.notify("Cannot ban yourself.", severity="warning")
+            return
+        self._do_ban(focused.author_did)
+
+    @work
+    async def _do_ban(self, did: str) -> None:
+        session = self.app.user_session
+        store = self.app.session_store
+
+        async def updater(d, field, value):
+            store.update_session_field(d, field, value)
+
+        try:
+            await create_ban_record(self.app.http_client, session, did, updater)
+            self.notify(f"Banned {did}.")
+        except Exception:
+            self.notify("Could not ban user.", severity="error")
+
+    def action_hide(self) -> None:
+        session = self.app.user_session
+        if not session or session["did"] != self.bbs.identity.did:
+            self.notify("User not authorized.", severity="error")
+            return
+        focused = self.focused
+        if not isinstance(focused, Post) or not focused.record_uri:
+            return
+        self._do_hide(focused)
+
+    @work
+    async def _do_hide(self, post: Post) -> None:
+        session = self.app.user_session
+        store = self.app.session_store
+
+        async def updater(d, field, value):
+            store.update_session_field(d, field, value)
+
+        try:
+            await create_hidden_record(
+                self.app.http_client, session, post.record_uri, updater
+            )
+            await post.remove()
+            self.notify("Post hidden.")
+        except Exception:
+            self.notify("Could not hide post.", severity="error")
 
     def action_next_page(self) -> None:
         if self._page < self._total_pages:
