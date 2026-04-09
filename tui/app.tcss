@@ -104,7 +104,13 @@ ActivityScreen VerticalScroll {
 }
 
 ComposeThreadScreen Vertical,
-ComposeReplyScreen Vertical {
+ComposeReplyScreen Vertical,
+ComposeNewsScreen Vertical {
+    padding: 1 4;
+}
+
+SysopEditScreen VerticalScroll,
+SysopModerateScreen VerticalScroll {
     padding: 1 4;
 }
 
@@ -170,6 +176,32 @@ LoginScreen Input {
 
 LoginScreen Input:focus {
     border: solid #404040;
+}
+
+/* sysop menu */
+SysopScreen {
+    align: center middle;
+}
+
+SysopScreen ListView {
+    width: 40;
+    height: auto;
+}
+
+/* sysop delete confirmation */
+SysopDeleteScreen {
+    align: center middle;
+}
+
+SysopDeleteScreen Vertical {
+    width: 60;
+    height: auto;
+    padding: 1 2;
+}
+
+SysopDeleteScreen Button {
+    width: 100%;
+    margin-top: 1;
 }
 
 Footer {
